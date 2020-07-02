@@ -10,8 +10,8 @@ LPCTSTR WindowName = "Window name";
 LPCTSTR WindowTitle = "Lamp";
 
 // width and height of the window
-int Width = 800;
-int Height = 600;
+int Width = 400;
+int Height = 300;
 
 // is window full screen?
 bool FullScreen = false;

@@ -1,13 +1,13 @@
 #include "stdafx.h"
+#include "D3D12Core.h"
 
 // Handle to the window
 HWND hwnd = NULL;
 
-// name of the window (not the title)
 LPCTSTR WindowName = "Window name";
-
-// title of the window
 LPCTSTR WindowTitle = "Lamp";
+
+Direct3D12* D3D12RendererPointer;
 
 // width and height of the window
 int Width = 400;
@@ -29,9 +29,27 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			"Error", MB_OK);
 		return 0;
 	}
+	
+	// initialize direct3d
+	D3D12RendererPointer = new Direct3D12;
+	if (!D3D12RendererPointer->InitD3D(hwnd))
+	{
+		MessageBox(0, "Failed to initialize direct3d 12 :D",
+			"Error", MB_OK);
+		D3D12RendererPointer->Cleanup();
+		return 1;
+	}
+
+	// we want to wait for the gpu to finish executing the command list before we start releasing everything
+	D3D12RendererPointer->WaitForPreviousFrame();
+
+	// close the fence event
+	CloseHandle(D3D12RendererPointer->getFenceEvent());
 
 	// start the main loop
 	gameloop();
+
+
 
 	return 0;
 }
@@ -115,6 +133,8 @@ void gameloop() {
 		}
 		else {
 			// run game code
+			D3D12RendererPointer->Update();
+			D3D12RendererPointer->Render();
 		}
 	}
 }

@@ -13,10 +13,19 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Source Files\Direct3D12">
+      <UniqueIdentifier>{df02ad26-d0cf-42b8-b71d-02a9b2509151}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Direct3D12">
+      <UniqueIdentifier>{a6ca122b-e370-4753-b768-2ea81d3d2e81}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D3D12Core.cpp">
+      <Filter>Source Files\Direct3D12</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -25,6 +34,9 @@
     </ClInclude>
     <ClInclude Include="stdafx.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D3D12Core.h">
+      <Filter>Header Files\Direct3D12</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

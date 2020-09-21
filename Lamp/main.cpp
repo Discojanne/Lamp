@@ -40,12 +40,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		return 1;
 	}
 
-	// we want to wait for the gpu to finish executing the command list before we start releasing everything
-	D3D12RendererPointer->WaitForPreviousFrame();
-
-	// close the fence event
-	CloseHandle(D3D12RendererPointer->getFenceEvent());
-
 	// start the main loop
 	gameloop();
 

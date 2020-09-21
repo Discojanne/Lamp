@@ -18,9 +18,12 @@ Direct3D12::Direct3D12()
     {
         m_renderTargets[i] = nullptr;
         m_commandAllocator[i] = nullptr;
-        m_fence[i] = nullptr;
+        m_fence = nullptr;
     }
 
+    m_fenceEvent = 0;
+    m_frameIndex = 0;
+    m_rtvDescriptorSize = 0;
 }
 
 Direct3D12::~Direct3D12()
@@ -210,23 +213,33 @@ bool Direct3D12::InitD3D(HWND hwnd)
 
     // -- Create a Fence & Fence Event -- //
 
-// create the fences
+    // create the fences
+    
+    hr = m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence));
+    if (FAILED(hr))
+    {
+        return false;
+    }
     for (int i = 0; i < frameBufferCount; i++)
     {
-        hr = m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence[i]));
-        if (FAILED(hr))
-        {
-            return false;
-        }
+      
         m_fenceValue[i] = 0; // set the initial fence value to 0
     }
 
     // create a handle to a fence event
-    m_fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-    if (m_fenceEvent == nullptr)
+    m_fenceEvent = CreateEvent(0, false, false, 0);
+    if (m_fenceEvent == 0)
     {
         return false;
     }
+
+    hr = m_commandQueue->Signal(m_fence, ++m_fenceTopValue);
+    if (FAILED(hr))
+    {
+        MessageBox(0, "Failed to signal command queue",
+            "Error", MB_OK);
+    }
+    m_fenceValue[m_frameIndex] = m_fenceTopValue;
 
 	return true;
 }
@@ -241,7 +254,7 @@ bool Direct3D12::UpdatePipeline()
     HRESULT hr;
 
     // We have to wait for the gpu to finish with the command allocator before we reset it
-    WaitForPreviousFrame();
+    WaitForNextFrameBuffers();
 
     // we can only reset an allocator once the gpu is done with it
     // resetting an allocator frees the memory that the command list was stored in
@@ -315,12 +328,14 @@ void Direct3D12::Render()
     // this command goes in at the end of our command queue. we will know when our command queue 
     // has finished because the fence value will be set to "fenceValue" from the GPU since the command
     // queue is being executed on the GPU
-    hr = m_commandQueue->Signal(m_fence[m_frameIndex], m_fenceValue[m_frameIndex]);
+    m_fenceTopValue++;
+    hr = m_commandQueue->Signal(m_fence, m_fenceTopValue);
     if (FAILED(hr))
     {
         MessageBox(0, "Failed to signal command queue",
             "Error", MB_OK);
     }
+    m_fenceValue[m_frameIndex] = m_fenceTopValue;
 
     // present the current backbuffer
     hr = m_swapChain->Present(0, 0);
@@ -339,8 +354,11 @@ void Direct3D12::Cleanup()
     for (int i = 0; i < frameBufferCount; ++i)
     {
         m_frameIndex = i;
-        WaitForPreviousFrame();
+        WaitForNextFrameBuffers();
     }
+
+    // close the fence event
+    CloseHandle(m_fenceEvent);
 
     // get swapchain out of full screen before exiting
     BOOL fs = false;
@@ -357,12 +375,12 @@ void Direct3D12::Cleanup()
     {
         m_renderTargets[i]->Release();
         m_commandAllocator[i]->Release();
-        m_fence[i]->Release();
+        m_fence->Release();
     };
 
 }
 
-void Direct3D12::WaitForPreviousFrame()
+void Direct3D12::WaitForNextFrameBuffers()
 {
 
     HRESULT hr;
@@ -372,11 +390,12 @@ void Direct3D12::WaitForPreviousFrame()
 
     // if the current fence value is still less than "fenceValue", then we know the GPU has not finished executing
     // the command queue since it has not reached the "commandQueue->Signal(fence, fenceValue)" command
-    if (m_fence[m_frameIndex]->GetCompletedValue() < m_fenceValue[m_frameIndex])
+    UINT64 tempFenceVlaue = m_fence->GetCompletedValue();
+    if (tempFenceVlaue < m_fenceValue[m_frameIndex])
     {
 
         // we have the fence create an event which is signaled once the fence's current value is "fenceValue"
-        hr = m_fence[m_frameIndex]->SetEventOnCompletion(m_fenceValue[m_frameIndex], m_fenceEvent);
+        hr = m_fence->SetEventOnCompletion(m_fenceValue[m_frameIndex], m_fenceEvent);
         if (FAILED(hr))
         {
             hr = m_device->GetDeviceRemovedReason();
@@ -392,8 +411,7 @@ void Direct3D12::WaitForPreviousFrame()
         WaitForSingleObject(m_fenceEvent, INFINITE);
     }
 
-    // increment fenceValue for next frame
-    m_fenceValue[m_frameIndex]++;
+    
 
 }
 

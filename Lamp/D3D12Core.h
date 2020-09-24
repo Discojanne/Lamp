@@ -8,17 +8,30 @@ public:
 	Direct3D12();
 	~Direct3D12();
 
-	bool InitD3D(HWND hwnd); // initializes direct3d 12
+	bool InitD3D(HWND hwnd, int width, int height); // initializes direct3d 12
 
 	void Update(); // update the game logic
 	bool UpdatePipeline(); // update the direct3d pipeline (update command lists)
 	void Render(); // execute the command list
 
 	void Cleanup(); // release com ojects and clean up memory
-	void WaitForNextFrameBuffers(); // wait until gpu is finished with command list
+	void WaitForNextFrameBuffers(int frameIndex); // wait until gpu is finished with command list
 	HANDLE getFenceEvent();
 
+
+	struct Vertex
+	{
+	private:
+		float x;
+		float y;
+		float z;
+	public:
+		Vertex(float a, float b, float c) { x = a; y = b; z = c; }
+	};
+
 private:
+
+	bool Init2(DXGI_SAMPLE_DESC sampleDesc, int width, int height); // rootsignature, viewport, vertexbuffer etc
 
 	static const int frameBufferCount = 3;
 
@@ -47,6 +60,19 @@ private:
 
 	int m_rtvDescriptorSize; // size of the rtv descriptor on the device (all front and back buffers will be the same size)
 
-	
+	/// to draw geometry 
+
+	ID3D12PipelineState* m_pipelineStateObject; // pso containing a pipeline state
+
+	ID3D12RootSignature* m_rootSignature; // root signature defines data shaders will access
+
+	D3D12_VIEWPORT m_viewport; // area that output from rasterizer will be stretched to.
+
+	D3D12_RECT m_scissorRect; // the area to draw in. pixels outside that area will not be drawn onto
+
+	ID3D12Resource* m_vertexBuffer; // a default buffer in GPU memory that we will load vertex data for our triangle into
+
+	D3D12_VERTEX_BUFFER_VIEW m_vertexBufferView; // a structure containing a pointer to the vertex data in gpu memory
+											   // the total size of the buffer, and the size of each element (vertex)
 
 };

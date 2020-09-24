@@ -10,8 +10,8 @@ LPCTSTR WindowTitle = "Lamp";
 Direct3D12* D3D12RendererPointer;
 
 // width and height of the window
-int Width = 400;
-int Height = 300;
+int Width = 800;
+int Height = 600;
 
 // is window full screen?
 bool FullScreen = false;
@@ -20,10 +20,14 @@ bool InitializeWindow(HINSTANCE hInstance, int ShowWnd, int width, int height, b
 void gameloop();
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd) {
+int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR lpCmdLine, _In_ int nShowCmd) {
+
+	RECT rc = { 0, 0, Width, Height };
+	AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, false);
 
 	// create the window
-	if (!InitializeWindow(hInstance, nShowCmd, Width, Height, FullScreen))
+	if (!InitializeWindow(hInstance, nShowCmd, 
+		rc.right - rc.left, rc.bottom - rc.top, FullScreen))
 	{
 		MessageBox(0, "Window Initialization - Failed",
 			"Error", MB_OK);
@@ -32,7 +36,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	
 	// initialize direct3d
 	D3D12RendererPointer = new Direct3D12;
-	if (!D3D12RendererPointer->InitD3D(hwnd))
+	if (!D3D12RendererPointer->InitD3D(hwnd, Width, Height))
 	{
 		MessageBox(0, "Failed to initialize direct3d 12 :D",
 			"Error", MB_OK);
@@ -43,6 +47,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	// start the main loop
 	gameloop();
 
+
+	delete D3D12RendererPointer;
 
 
 	return 0;
@@ -131,6 +137,7 @@ void gameloop() {
 			D3D12RendererPointer->Render();
 		}
 	}
+
 }
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {

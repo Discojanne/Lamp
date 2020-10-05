@@ -74,6 +74,9 @@ bool Direct3D12::InitD3D(HWND hwnd, int width, int height)
     if (!InitRootSignature())
         return false;
 
+    if (!InitConstantBuffer())
+        return false;
+
     if (!InitShaderLayoutGPS())
         return false;
 
@@ -90,6 +93,45 @@ bool Direct3D12::InitD3D(HWND hwnd, int width, int height)
 
 void Direct3D12::Update()
 {
+
+    // update app logic, such as moving the camera or figuring out what objects are in view
+    static float rIncrement = 0.00002f;
+    static float gIncrement = 0.00006f;
+    static float bIncrement = 0.00009f;
+
+    m_cbColorMultiplierData.colorMultiplier.x += rIncrement;
+    m_cbColorMultiplierData.colorMultiplier.y += gIncrement;
+    m_cbColorMultiplierData.colorMultiplier.z += bIncrement;
+
+    if (m_cbColorMultiplierData.colorMultiplier.x >= 1.0 || m_cbColorMultiplierData.colorMultiplier.x <= 0.0)
+    {
+        m_cbColorMultiplierData.colorMultiplier.x = m_cbColorMultiplierData.colorMultiplier.x >= 1.0 ? 1.0 : 0.0;
+        rIncrement = -rIncrement;
+    }
+    if (m_cbColorMultiplierData.colorMultiplier.y >= 1.0 || m_cbColorMultiplierData.colorMultiplier.y <= 0.0)
+    {
+        m_cbColorMultiplierData.colorMultiplier.y = m_cbColorMultiplierData.colorMultiplier.y >= 1.0 ? 1.0 : 0.0;
+        gIncrement = -gIncrement;
+    }
+    if (m_cbColorMultiplierData.colorMultiplier.z >= 1.0 || m_cbColorMultiplierData.colorMultiplier.z <= 0.0)
+    {
+        m_cbColorMultiplierData.colorMultiplier.z = m_cbColorMultiplierData.colorMultiplier.z >= 1.0 ? 1.0 : 0.0;
+        bIncrement = -bIncrement;
+    }
+
+
+    //m_constantBufferUploadHeap[m_frameIndex]->Map(,);
+
+
+    CD3DX12_RANGE readRange(0, 0);    // We do not intend to read from this resource on the CPU. (End is less than or equal to begin)
+    m_constantBufferUploadHeap[m_frameIndex]->Map(0, &readRange, reinterpret_cast<void**>(&m_cbColorMultiplierGPUAddress[m_frameIndex]));
+
+    // copy our ConstantBuffer instance to the mapped constant buffer resource
+    memcpy(m_cbColorMultiplierGPUAddress[m_frameIndex], &m_cbColorMultiplierData, sizeof(m_cbColorMultiplierData));
+
+    CD3DX12_RANGE writeRange(0, sizeof(ConstantBuffer));
+
+    m_constantBufferUploadHeap[m_frameIndex]->Unmap(0, &writeRange);
 }
 
 bool Direct3D12::UpdatePipeline()
@@ -143,17 +185,26 @@ bool Direct3D12::UpdatePipeline()
     m_commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
     m_commandList->ClearDepthStencilView(m_dsDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
+    m_commandList->SetGraphicsRootSignature(m_rootSignature); // set the root signature
+
+    // set constant buffer descriptor heap
+    ID3D12DescriptorHeap* descriptorHeaps[] = { m_mainDescriptorHeap[m_frameIndex] };
+    m_commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+
+    // set the root descriptor table 0 to the constant buffer descriptor heap
+    m_commandList->SetGraphicsRootDescriptorTable(0, m_mainDescriptorHeap[m_frameIndex]->GetGPUDescriptorHandleForHeapStart());
+
     // draw triangle
     m_commandList->SetPipelineState(m_pipelineStateObject);
-    m_commandList->SetGraphicsRootSignature(m_rootSignature); // set the root signature
+    
     m_commandList->RSSetViewports(1, &m_viewport); // set the viewports
     m_commandList->RSSetScissorRects(1, &m_scissorRect); // set the scissor rects
     m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // set the primitive topology
     m_commandList->IASetVertexBuffers(0, 1, &m_vertexBufferView); // set the vertex buffer (using the vertex buffer view)
     m_commandList->IASetIndexBuffer(&m_indexBufferView);
     //m_commandList->DrawInstanced(4, 1, 0, 0); // finally draw 3 vertices (draw the triangle)
-    m_commandList->DrawIndexedInstanced(6, 10, 0, 0, 0);
-    m_commandList->DrawIndexedInstanced(6, 1, 0, 4, 0);
+    m_commandList->DrawIndexedInstanced(6, 1, 0, 0, 0);
+    //m_commandList->DrawIndexedInstanced(6, 1, 0, 4, 0);
 
     // transition the "frameIndex" render target from the render target state to the present state. If the debug layer is enabled, you will receive a
     // warning if present is called on the render target when it's not in the present state
@@ -247,6 +298,9 @@ void Direct3D12::Cleanup()
     {
         m_renderTargets[i]->Release();
         m_commandAllocator[i]->Release();
+
+        m_mainDescriptorHeap[i]->Release();
+        m_constantBufferUploadHeap[i]->Release();
         
     };
 
@@ -542,14 +596,91 @@ bool Direct3D12::InitFence()
     return true;
 }
 
+bool Direct3D12::InitConstantBuffer()
+{
+    HRESULT hr;
+
+
+    for (int i = 0; i < frameBufferCount; ++i)
+    {
+        D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
+        heapDesc.NumDescriptors = 1;
+        heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+        heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+        hr = m_device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&m_mainDescriptorHeap[i]));
+        if (FAILED(hr))
+        {
+            return false;
+        }
+    }
+
+    // create the constant buffer resource heap
+    // We will update the constant buffer one or more times per frame, so we will use only an upload heap
+    // unlike previously we used an upload heap to upload the vertex and index data, and then copied over
+    // to a default heap. If you plan to use a resource for more than a couple frames, it is usually more
+    // efficient to copy to a default heap where it stays on the gpu. In this case, our constant buffer
+    // will be modified and uploaded at least once per frame, so we only use an upload heap
+
+    // create a resource heap, descriptor heap, and pointer to cbv for each frame
+    for (int i = 0; i < frameBufferCount; ++i)
+    {
+        hr = m_device->CreateCommittedResource(
+            &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), // this heap will be used to upload the constant buffer data
+            D3D12_HEAP_FLAG_NONE, // no flags
+            &CD3DX12_RESOURCE_DESC::Buffer(1024 * 64), // size of the resource heap. Must be a multiple of 64KB for single-textures and constant buffers
+            D3D12_RESOURCE_STATE_GENERIC_READ, // will be data that is read from so we keep it in the generic read state
+            nullptr, // we do not have use an optimized clear value for constant buffers
+            IID_PPV_ARGS(&m_constantBufferUploadHeap[i])
+        );
+        m_constantBufferUploadHeap[i]->SetName(L"Constant Buffer Upload Resource Heap");
+
+        D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+        cbvDesc.BufferLocation = m_constantBufferUploadHeap[i]->GetGPUVirtualAddress();
+        cbvDesc.SizeInBytes = (sizeof(ConstantBuffer) + 255) & ~255;    // CB size is required to be 256-byte aligned.
+        m_device->CreateConstantBufferView(&cbvDesc, m_mainDescriptorHeap[i]->GetCPUDescriptorHandleForHeapStart());
+
+        ZeroMemory(&m_cbColorMultiplierData, sizeof(m_cbColorMultiplierData));
+    }
+
+    return true;
+}
+
 bool Direct3D12::InitRootSignature()
 {
     HRESULT hr;
 
     // create root signature
 
+    // create a descriptor range (descriptor table) and fill it out
+    // this is a range of descriptors inside a descriptor heap
+    D3D12_DESCRIPTOR_RANGE  descriptorTableRanges[1]; // only one range right now
+    descriptorTableRanges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV; // this is a range of constant buffer views (descriptors)
+    descriptorTableRanges[0].NumDescriptors = 1; // we only have one constant buffer, so the range is only 1
+    descriptorTableRanges[0].BaseShaderRegister = 0; // start index of the shader registers in the range
+    descriptorTableRanges[0].RegisterSpace = 0; // space 0. can usually be zero
+    descriptorTableRanges[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND; // this appends the range to the end of the root signature descriptor tables
+
+    // create a descriptor table
+    D3D12_ROOT_DESCRIPTOR_TABLE descriptorTable;
+    descriptorTable.NumDescriptorRanges = _countof(descriptorTableRanges); // we only have one range
+    descriptorTable.pDescriptorRanges = &descriptorTableRanges[0]; // the pointer to the beginning of our ranges array
+
+    // create a root parameter and fill it out
+    D3D12_ROOT_PARAMETER  rootParameters[1]; // only one parameter right now
+    rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE; // this is a descriptor table
+    rootParameters[0].DescriptorTable = descriptorTable; // this is our descriptor table for this root parameter
+    rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX; // our pixel shader will be the only shader accessing this parameter for now
+
     CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc;
-    rootSignatureDesc.Init(0, nullptr, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+    rootSignatureDesc.Init(_countof(rootParameters), // we have 1 root parameter
+        rootParameters, // a pointer to the beginning of our root parameters array
+        0,
+        nullptr,
+        D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT | // we can deny shader stages here for better performance
+        D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
+        D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
+        D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
+        D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS);
 
     ID3DBlob* signature;
     hr = D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &signature, nullptr);
@@ -690,18 +821,27 @@ bool Direct3D12::InitVertexIndexBuffer()
 
     // Create vertex buffer
 
+    //Vertex vList[] = {
+    //    // first quad (closer to camera, blue)
+    //    { -0.5f,  0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f },
+    //    {  0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f },
+    //    { -0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f },
+    //    {  0.5f,  0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f },
+
+    //    // second quad (further from camera, green)
+    //    { -0.75f,  0.75f,  0.7f, 0.0f, 1.0f, 0.0f, 1.0f },
+    //    {   0.0f,  0.0f, 0.7f, 0.0f, 1.0f, 0.0f, 1.0f },
+    //    { -0.75f,  0.0f, 0.7f, 0.0f, 1.0f, 0.0f, 1.0f },
+    //    {   0.0f,  0.75f,  0.7f, 0.0f, 1.0f, 0.0f, 1.0f }
+    //};
+
+    // a quad
     Vertex vList[] = {
         // first quad (closer to camera, blue)
-        { -0.5f,  0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f },
-        {  0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f },
+        { -0.5f,  0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f },
+        {  0.5f, -0.5f, 0.5f, 1.0f, 0.0f, 1.0f, 1.0f },
         { -0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f },
-        {  0.5f,  0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f },
-
-        // second quad (further from camera, green)
-        { -0.75f,  0.75f,  0.7f, 0.0f, 1.0f, 0.0f, 1.0f },
-        {   0.0f,  0.0f, 0.7f, 0.0f, 1.0f, 0.0f, 1.0f },
-        { -0.75f,  0.0f, 0.7f, 0.0f, 1.0f, 0.0f, 1.0f },
-        {   0.0f,  0.75f,  0.7f, 0.0f, 1.0f, 0.0f, 1.0f }
+        {  0.5f,  0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f }
     };
 
     int vBufferSize = sizeof(vList);

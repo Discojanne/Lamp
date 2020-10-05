@@ -37,6 +37,11 @@ public:
 		
 	};
 
+	// this is the structure of our constant buffer.
+	struct ConstantBuffer {
+		DirectX::XMFLOAT4 colorMultiplier;
+	};
+
 private:
 
 	static const int frameBufferCount = 3;
@@ -47,6 +52,7 @@ private:
 	bool InitBackBuffers();
 	bool InitCommandAllocators();
 	bool InitFence();
+	bool InitConstantBuffer();
 	bool InitRootSignature();
 	bool InitShaderLayoutGPS();
 	bool InitVertexIndexBuffer();
@@ -93,5 +99,15 @@ private:
 
 	ID3D12Resource* m_depthStencilBuffer; // This is the memory for our depth buffer. it will also be used for a stencil buffer in a later tutorial
 	ID3D12DescriptorHeap* m_dsDescriptorHeap; // This is a heap for our depth/stencil buffer descriptor
+
+	// Constant buffer
+	ID3D12DescriptorHeap* m_mainDescriptorHeap[frameBufferCount]; // this heap will store the descripor to our constant buffer
+	ID3D12Resource* m_constantBufferUploadHeap[frameBufferCount]; // this is the memory on the gpu where our constant buffer will be placed.
+
+	ConstantBuffer m_cbColorMultiplierData; // this is the constant buffer data we will send to the gpu 
+											// (which will be placed in the resource we created above)
+
+	UINT8* m_cbColorMultiplierGPUAddress[frameBufferCount]; // this is a pointer to the memory location we get when we map our constant buffer
+
 
 };

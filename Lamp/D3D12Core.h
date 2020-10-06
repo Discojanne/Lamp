@@ -42,6 +42,10 @@ public:
 		DirectX::XMFLOAT4 colorMultiplier;
 	};
 
+	struct ConstantBufferPerObject {
+		DirectX::XMFLOAT4X4 wvpMat;
+	};
+
 private:
 
 	static const int frameBufferCount = 3;
@@ -58,6 +62,7 @@ private:
 	bool InitVertexIndexBuffer();
 	bool InitDepthTesting(int width, int height);
 	void SetViewportSR(int width, int height);
+	void BuildCamMatrices(int width, int height);
 	
 
 	ID3D12Device6* m_device;
@@ -100,14 +105,41 @@ private:
 	ID3D12Resource* m_depthStencilBuffer; // This is the memory for our depth buffer. it will also be used for a stencil buffer in a later tutorial
 	ID3D12DescriptorHeap* m_dsDescriptorHeap; // This is a heap for our depth/stencil buffer descriptor
 
-	// Constant buffer
-	ID3D12DescriptorHeap* m_mainDescriptorHeap[frameBufferCount]; // this heap will store the descripor to our constant buffer
-	ID3D12Resource* m_constantBufferUploadHeap[frameBufferCount]; // this is the memory on the gpu where our constant buffer will be placed.
+	/// Camera matrices etc
+	
+	// Constant buffers must be 256-byte aligned which has to do with constant reads on the GPU.
+	// We are only able to read at 256 byte intervals from the start of a resource heap, so we will
+	// make sure that we add padding between the two constant buffers in the heap (one for cube1 and one for cube2)
+	// Another way to do this would be to add a float array in the constant buffer structure for padding. In this case
+	// we would need to add a float padding[50]; after the wvpMat variable. This would align our structure to 256 bytes (4 bytes per float)
+	// The reason i didn't go with this way, was because there would actually be wasted cpu cycles when memcpy our constant
+	// buffer data to the gpu virtual address. currently we memcpy the size of our structure, which is 16 bytes here, but if we
+	// were to add the padding array, we would memcpy 64 bytes if we memcpy the size of our structure, which is 50 wasted bytes
+	// being copied.
+	int m_ConstantBufferPerObjectAlignedSize = (sizeof(ConstantBufferPerObject) + 255) & ~255;
 
-	ConstantBuffer m_cbColorMultiplierData; // this is the constant buffer data we will send to the gpu 
+	ConstantBufferPerObject m_cbPerObject; // this is the constant buffer data we will send to the gpu 
 											// (which will be placed in the resource we created above)
 
-	UINT8* m_cbColorMultiplierGPUAddress[frameBufferCount]; // this is a pointer to the memory location we get when we map our constant buffer
+	ID3D12Resource* m_constantBufferUploadHeaps[frameBufferCount]; // this is the memory on the gpu where constant buffers for each frame will be placed
 
+	UINT8* m_cbvGPUAddress[frameBufferCount]; // this is a pointer to each of the constant buffer resource heaps
+
+	DirectX::XMFLOAT4X4 m_cameraProjMat; // this will store our projection matrix
+	DirectX::XMFLOAT4X4 m_cameraViewMat; // this will store our view matrix
+
+	DirectX::XMFLOAT4 m_cameraPosition; // this is our cameras position vector
+	DirectX::XMFLOAT4 m_cameraTarget; // a vector describing the point in space our camera is looking at
+	DirectX::XMFLOAT4 m_cameraUp; // the worlds up vector
+
+	DirectX::XMFLOAT4X4 m_cube1WorldMat; // our first cubes world matrix (transformation matrix)
+	DirectX::XMFLOAT4X4 m_cube1RotMat; // this will keep track of our rotation for the first cube
+	DirectX::XMFLOAT4 m_cube1Position; // our first cubes position in space
+
+	DirectX::XMFLOAT4X4 m_cube2WorldMat; // our first cubes world matrix (transformation matrix)
+	DirectX::XMFLOAT4X4 m_cube2RotMat; // this will keep track of our rotation for the second cube
+	DirectX::XMFLOAT4 m_cube2PositionOffset; // our second cube will rotate around the first cube, so this is the position offset from the first cube
+
+	int m_numCubeIndices; // the number of indices to draw the cube
 
 };

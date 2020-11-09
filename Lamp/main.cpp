@@ -135,6 +135,17 @@ void gameloop() {
 			// run game code
 			D3D12RendererPointer->Update();
 			D3D12RendererPointer->Render();
+
+
+			//WindowTitle = "Lamp Fps:444";
+			static int a = 0;
+			a++;
+			if (a > 100)
+			{
+				SetWindowTextA(hwnd, "Lamp Fps:444");
+				a = 0;
+			}
+			
 		}
 	}
 

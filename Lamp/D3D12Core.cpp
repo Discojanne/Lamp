@@ -2,7 +2,8 @@
 #define IID_PPV_ARGS(ppType) __uuidof(**(ppType)), IID_PPV_ARGS_Helper(ppType)
 #include <comdef.h>
 #include <iostream>
-#include <d3dcompiler.h>
+//#include <d3dcompiler.h>
+#include "CompilerClass.h"
 
 Direct3D12::Direct3D12()
 {
@@ -39,7 +40,7 @@ bool Direct3D12::InitD3D(HWND hwnd, int width, int height)
     //Enable the D3D12 debug layer.
     ID3D12Debug* debugController = nullptr;
 
-    HMODULE mD3D12 = GetModuleHandle("D3D12.dll");
+    HMODULE mD3D12 = GetModuleHandle(L"D3D12.dll");
     if (mD3D12 == 0) {
         return false;
     }
@@ -264,8 +265,8 @@ void Direct3D12::Render()
 
     if (!UpdatePipeline()) // update the pipeline by sending commands to the commandqueue
     {
-        MessageBox(0, "Failed to update pipeline",
-            "Error", MB_OK);
+        MessageBox(0, L"Failed to update pipeline",
+            L"Error", MB_OK);
     }
     // create an array of command lists (only one command list here)
     ID3D12CommandList* ppCommandLists[] = { m_commandList };
@@ -280,8 +281,8 @@ void Direct3D12::Render()
     hr = m_commandQueue->Signal(m_fence, m_fenceTopValue);
     if (FAILED(hr))
     {
-        MessageBox(0, "Failed to signal command queue",
-            "Error", MB_OK);
+        MessageBox(0, L"Failed to signal command queue",
+            L"Error", MB_OK);
     }
     m_fenceValue[m_frameIndex] = m_fenceTopValue;
 
@@ -289,8 +290,8 @@ void Direct3D12::Render()
     hr = m_swapChain->Present(0, 0);
     if (FAILED(hr))
     {
-        MessageBox(0, "Failed to present in render()",
-            "Error", MB_OK);
+        MessageBox(0, L"Failed to present in render()",
+            L"Error", MB_OK);
     }
 
     m_frameIndex = m_swapChain->GetCurrentBackBufferIndex();
@@ -304,8 +305,8 @@ void Direct3D12::Cleanup()
     hr = m_commandQueue->Signal(m_fence, m_fenceTopValue);
     if (FAILED(hr))
     {
-        MessageBox(0, "Failed to signal command queue",
-            "Error", MB_OK);
+        MessageBox(0, L"Failed to signal command queue",
+            L"Error", MB_OK);
     }
     m_fenceValue[m_frameIndex] = m_fenceTopValue;
 
@@ -372,8 +373,8 @@ void Direct3D12::WaitForNextFrameBuffers(int frameIndex)
             _com_error err2(hr);
             std::cout << "Device Status: " << err2.ErrorMessage() << std::endl;
             
-            MessageBox(0, "Failed to SetEventOnCompletion in WaitForPreviousFrame()",
-                "Error", MB_OK);
+            MessageBox(0, L"Failed to SetEventOnCompletion in WaitForPreviousFrame()",
+                L"Error", MB_OK);
         }
 
         // We will wait until the fence has triggered the event that it's current value has reached "fenceValue". once it's value
@@ -622,8 +623,8 @@ bool Direct3D12::InitFence()
     hr = m_commandQueue->Signal(m_fence, ++m_fenceTopValue);
     if (FAILED(hr))
     {
-        MessageBox(0, "Failed to signal command queue",
-            "Error", MB_OK);
+        MessageBox(0, L"Failed to signal command queue",
+            L"Error", MB_OK);
     }
     m_fenceValue[m_frameIndex] = m_fenceTopValue;
 
@@ -767,21 +768,41 @@ bool Direct3D12::InitShaderLayoutGPS()
     // them at runtime
 
     // compile vertex shader
-    ID3DBlob* vertexShader; // d3d blob for holding vertex shader bytecode
-    ID3DBlob* errorBuff; // a buffer holding the error data if any
+    IDxcBlob* vertexShader; // d3d blob for holding vertex shader bytecode
+//    ID3DBlob* errorBuff; // a buffer holding the error data if any
 
-    hr = D3DCompileFromFile(L"Resources/Shaders/VertexShadertest.hlsl",
-        nullptr,
-        nullptr,
-        "VSmain",
-        "vs_5_1",
-        D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
-        0,
-        &vertexShader,
-        &errorBuff);
-    if (FAILED(hr))
+//    hr = D3DCompileFromFile(L"Resources/Shaders/VertexShadertest.hlsl",
+//        nullptr,
+//        nullptr,
+//        "VSmain",
+//        "vs_5_1",
+//        D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
+//        0,
+//        &vertexShader,
+//        &errorBuff);
+//    if (FAILED(hr))
+//    {
+//        OutputDebugStringA((char*)errorBuff->GetBufferPointer());
+//        return false;
+//    }
+
+    m_shaderCompiler = new DXILShaderCompiler();
+    m_shaderCompiler->init();
+
+    DXILShaderCompiler::Desc desc;
+    desc.source = nullptr;
+    desc.sourceSize = 0;
+    desc.filePath = L"Resources/Shaders/VertexShadertest.hlsl";
+    desc.entryPoint = L"VSmain";
+    desc.targetProfile = L"vs_6_4";
+
+    ;
+
+    if (FAILED(m_shaderCompiler->compile(&desc, &vertexShader)))
     {
-        OutputDebugStringA((char*)errorBuff->GetBufferPointer());
+        MessageBox(0, L"Failed to complie vertex shader",
+            L"Error", MB_OK);
+
         return false;
     }
 
@@ -791,23 +812,41 @@ bool Direct3D12::InitShaderLayoutGPS()
     vertexShaderBytecode.BytecodeLength = vertexShader->GetBufferSize();
     vertexShaderBytecode.pShaderBytecode = vertexShader->GetBufferPointer();
 
-    // compile pixel shader
-    ID3DBlob* pixelShader;
-    hr = D3DCompileFromFile(L"Resources/Shaders/PixelShadertest.hlsl",
-        nullptr,
-        nullptr,
-        "PSmain",
-        "ps_5_1",
-        D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
-        0,
-        &pixelShader,
-        &errorBuff);
-    if (FAILED(hr))
+
+
+
+
+
+    //// compile pixel shader
+    IDxcBlob* pixelShader;
+    //hr = D3DCompileFromFile(L"Resources/Shaders/PixelShadertest.hlsl",
+    //    nullptr,
+    //    nullptr,
+    //    "PSmain",
+    //    "ps_5_1",
+    //    D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
+    //    0,
+    //    &pixelShader,
+    //    &errorBuff);
+    //if (FAILED(hr))
+    //{
+    //    OutputDebugStringA((char*)errorBuff->GetBufferPointer());
+    //    return false;
+    //}
+
+    desc.source = nullptr;
+    desc.sourceSize = 0;
+    desc.filePath = L"Resources/Shaders/PixelShadertest.hlsl";
+    desc.entryPoint = L"PSmain";
+    desc.targetProfile = L"ps_6_4";
+
+    if (FAILED(m_shaderCompiler->compile(&desc, &pixelShader)))
     {
-        OutputDebugStringA((char*)errorBuff->GetBufferPointer());
+        MessageBox(0, L"Failed to complie pixel shader",
+            L"Error", MB_OK);
+
         return false;
     }
-
     // fill out shader bytecode structure for pixel shader
     D3D12_SHADER_BYTECODE pixelShaderBytecode = {};
     pixelShaderBytecode.BytecodeLength = pixelShader->GetBufferSize();

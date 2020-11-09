@@ -27,6 +27,9 @@
     <ClCompile Include="D3D12Core.cpp">
       <Filter>Source Files\Direct3D12</Filter>
     </ClCompile>
+    <ClCompile Include="CompilerClass.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="d3dx12.h">
@@ -37,6 +40,9 @@
     </ClInclude>
     <ClInclude Include="D3D12Core.h">
       <Filter>Header Files\Direct3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="CompilerClass.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

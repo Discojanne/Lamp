@@ -4,8 +4,8 @@
 // Handle to the window
 HWND hwnd = NULL;
 
-LPCTSTR WindowName = "Window name";
-LPCTSTR WindowTitle = "Lamp";
+LPCTSTR WindowName = L"Window name";
+LPCTSTR WindowTitle = L"Lamp";
 
 Direct3D12* D3D12RendererPointer;
 
@@ -29,8 +29,8 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 	if (!InitializeWindow(hInstance, nShowCmd, 
 		rc.right - rc.left, rc.bottom - rc.top, FullScreen))
 	{
-		MessageBox(0, "Window Initialization - Failed",
-			"Error", MB_OK);
+		MessageBox(0, L"Window Initialization - Failed",
+			L"Error", MB_OK);
 		return 0;
 	}
 	
@@ -38,8 +38,8 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 	D3D12RendererPointer = new Direct3D12;
 	if (!D3D12RendererPointer->InitD3D(hwnd, Width, Height))
 	{
-		MessageBox(0, "Failed to initialize direct3d 12 :D",
-			"Error", MB_OK);
+		MessageBox(0, L"Failed to initialize direct3d 12 :D",
+			L"Error", MB_OK);
 		D3D12RendererPointer->Cleanup();
 		return 1;
 	}
@@ -84,7 +84,7 @@ bool InitializeWindow(HINSTANCE hInstance,int ShowWnd,int width, int height,bool
 
 	if (!RegisterClassEx(&wc)) {
 
-		MessageBox(NULL, "Error registering class",
+		MessageBoxA(NULL, "Error registering class",
 			"Error", MB_OK | MB_ICONERROR);
 		return false;
 	}
@@ -102,8 +102,8 @@ bool InitializeWindow(HINSTANCE hInstance,int ShowWnd,int width, int height,bool
 
 	if (!hwnd) {
 
-		MessageBox(NULL, "Error creating window",
-			"Error", MB_OK | MB_ICONERROR);
+		MessageBoxW(NULL, L"Error creating window",
+			L"Error", MB_OK | MB_ICONERROR);
 		return false;
 	}
 
@@ -158,8 +158,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
 	case WM_KEYDOWN:
 		if (wParam == VK_ESCAPE) {
-			if (MessageBox(0, "Are you sure you want to exit?",
-				"Really?", MB_YESNO | MB_ICONQUESTION) == IDYES)
+			if (MessageBox(0, L"Are you sure you want to exit?",
+				L"Really?", MB_YESNO | MB_ICONQUESTION) == IDYES)
 				DestroyWindow(hwnd);
 		}
 		return 0;

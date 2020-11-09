@@ -3,6 +3,8 @@
 #include <dxgi1_4.h> // IDXGISwapChain3
 #include "directxmath.h"
 
+class DXILShaderCompiler;
+
 class Direct3D12
 {
 public:
@@ -18,17 +20,6 @@ public:
 	void Cleanup(); // release com ojects and clean up memory
 	void WaitForNextFrameBuffers(int frameIndex); // wait until gpu is finished with command list
 	HANDLE getFenceEvent();
-
-
-	/*struct Vertex
-	{
-	private:
-		float x;
-		float y;
-		float z;
-	public:
-		Vertex(float a, float b, float c) { x = a; y = b; z = c; }
-	};*/
 
 	struct Vertex {
 		Vertex(float x, float y, float z, float r, float g, float b, float a) : pos(x, y, z), color(r, g, b, z) {}
@@ -104,6 +95,8 @@ private:
 
 	ID3D12Resource* m_depthStencilBuffer; // This is the memory for our depth buffer. it will also be used for a stencil buffer in a later tutorial
 	ID3D12DescriptorHeap* m_dsDescriptorHeap; // This is a heap for our depth/stencil buffer descriptor
+
+	DXILShaderCompiler* m_shaderCompiler;
 
 	/// Camera matrices etc
 	

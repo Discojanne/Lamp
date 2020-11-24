@@ -4,6 +4,7 @@
 #include <dxgi1_4.h> // IDXGISwapChain3
 #include "directxmath.h"
 
+
 class DXILShaderCompiler;
 
 class Direct3D12
@@ -11,7 +12,7 @@ class Direct3D12
 public:
 	Direct3D12();
 	~Direct3D12();
-
+	
 	bool InitD3D(HWND hwnd, int width, int height); // initializes direct3d 12
 
 	void Update(); // update the game logic
@@ -21,7 +22,7 @@ public:
 	void Cleanup(); // release com ojects and clean up memory
 	void WaitForNextFrameBuffers(int frameIndex); // wait until gpu is finished with command list
 	HANDLE getFenceEvent();
-
+	
 	struct Vertex {
 		Vertex(float x, float y, float z, float r, float g, float b, float a) : pos(x, y, z), color(r, g, b, z) {}
 		DirectX::XMFLOAT3 pos;

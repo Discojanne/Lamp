@@ -1,4 +1,5 @@
 #pragma once
+#include <initguid.h> // https://github.com/microsoft/DirectX-Graphics-Samples/issues/567
 #include "d3dx12.h"
 #include <dxgi1_4.h> // IDXGISwapChain3
 #include "directxmath.h"
@@ -50,6 +51,7 @@ private:
 	bool InitConstantBuffer();
 	bool InitRootSignature();
 	bool InitShaderLayoutGPS();
+	bool InitMeshshader();
 	bool InitVertexIndexBuffer();
 	bool InitDepthTesting(int width, int height);
 	void SetViewportSR(int width, int height);
@@ -65,7 +67,7 @@ private:
 
 	ID3D12CommandAllocator* m_commandAllocator[frameBufferCount]; // we want enough allocators for each buffer * number of threads (we only have one thread)
 
-	ID3D12GraphicsCommandList* m_commandList; // a command list we can record commands into, then execute them to render the frame
+	ID3D12GraphicsCommandList6* m_commandList; // a command list we can record commands into, then execute them to render the frame
 
 	ID3D12Fence1* m_fence;    // an object that is locked while our command list is being executed by the gpu. We need as many 
 											 //as we have allocators (more if we want to know when the gpu is finished with an asset)
@@ -80,7 +82,10 @@ private:
 	/// to draw geometry 
 
 	ID3D12RootSignature* m_rootSignature; // root signature defines data shaders will access
+	ID3D12RootSignature* m_rootSignatureMS; // root signature defines data shaders will access
+
 	ID3D12PipelineState* m_pipelineStateObject; // pso containing a pipeline state
+	ID3D12PipelineState* m_MSpipelineStateObject; // pso containing a pipeline state
 
 	ID3D12Resource* m_vertexBuffer; // a default buffer in GPU memory that we will load vertex data for our triangle into
 	D3D12_VERTEX_BUFFER_VIEW m_vertexBufferView; // a structure containing a pointer to the vertex data in gpu memory

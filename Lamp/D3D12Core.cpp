@@ -26,6 +26,8 @@ Direct3D12::Direct3D12()
     m_fenceEvent = 0;
     m_frameIndex = 0;
     m_rtvDescriptorSize = 0;
+    m_MSpipelineStateObject = nullptr;
+    m_rootSignatureMS = nullptr;
 }
 
 Direct3D12::~Direct3D12()
@@ -110,11 +112,15 @@ void Direct3D12::Update()
     // create translation matrix for cube 1 from cube 1's position vector
     DirectX::XMMATRIX translationMat = DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat4(&m_cube1Position));
 
+    DirectX::XMMATRIX scaleMat = DirectX::XMMatrixScaling(0.5f, 0.5f, 0.5f);
+
     // create cube1's world matrix by first rotating the cube, then positioning the rotated cube
-    DirectX::XMMATRIX worldMat = rotMat * translationMat;
+    DirectX::XMMATRIX worldMat = scaleMat * rotMat * translationMat;
 
     // store cube1's world matrix
     DirectX::XMStoreFloat4x4(&m_cube1WorldMat, worldMat);
+
+    
 
     // update constant buffer for cube1
     // create the wvp matrix and store in constant buffer
@@ -141,7 +147,7 @@ void Direct3D12::Update()
     DirectX::XMMATRIX translationOffsetMat = DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat4(&m_cube2PositionOffset));
 
     // we want cube 2 to be half the size of cube 1, so we scale it by .5 in all dimensions
-    DirectX::XMMATRIX scaleMat = DirectX::XMMatrixScaling(0.5f, 0.5f, 0.5f);
+    scaleMat = DirectX::XMMatrixScaling(0.5f, 0.5f, 0.5f);
 
     // reuse worldMat. 
     // first we scale cube2. scaling happens relative to point 0,0,0, so you will almost always want to scale first
@@ -215,31 +221,26 @@ bool Direct3D12::UpdatePipeline()
     m_commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
     m_commandList->ClearDepthStencilView(m_dsDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
-    m_commandList->SetGraphicsRootSignature(m_rootSignature); // set the root signature
+    m_commandList->RSSetViewports(1, &m_viewport); // set the viewports
+    m_commandList->RSSetScissorRects(1, &m_scissorRect); // set the scissor rects
+    m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // set the primitive topology
 
-    // set constant buffer descriptor heap
-    //ID3D12DescriptorHeap* descriptorHeaps[] = { m_mainDescriptorHeap[m_frameIndex] };
-    //m_commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+
+    m_commandList->SetGraphicsRootSignature(m_rootSignature); // set the root signature
 
     // set the root descriptor table 0 to the constant buffer descriptor heap
     m_commandList->SetGraphicsRootConstantBufferView(0, m_constantBufferUploadHeaps[m_frameIndex]->GetGPUVirtualAddress());
 
     // draw triangle
     m_commandList->SetPipelineState(m_pipelineStateObject);
-    
-    m_commandList->RSSetViewports(1, &m_viewport); // set the viewports
-    m_commandList->RSSetScissorRects(1, &m_scissorRect); // set the scissor rects
-    m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // set the primitive topology
     m_commandList->IASetVertexBuffers(0, 1, &m_vertexBufferView); // set the vertex buffer (using the vertex buffer view)
     m_commandList->IASetIndexBuffer(&m_indexBufferView);
-    //m_commandList->DrawInstanced(4, 1, 0, 0); // finally draw 3 vertices (draw the triangle)
+    m_commandList->DrawIndexedInstanced(m_numCubeIndices, 1, 0, 0, 0);
 
-    m_commandList->SetGraphicsRootConstantBufferView(0, m_constantBufferUploadHeaps[m_frameIndex]->GetGPUVirtualAddress());
-    m_commandList->DrawIndexedInstanced(m_numCubeIndices, 2, 0, 0, 0);
-
-    //m_commandList->SetGraphicsRootConstantBufferView(0, m_constantBufferUploadHeaps[m_frameIndex]->GetGPUVirtualAddress() + m_ConstantBufferPerObjectAlignedSize);
-    //m_commandList->DrawIndexedInstanced(m_numCubeIndices, 1, 0, 0, 0);
-    
+    // Mesh shader
+    m_commandList->SetPipelineState(m_MSpipelineStateObject);
+    m_commandList->SetGraphicsRootSignature(m_rootSignatureMS);
+    m_commandList->DispatchMesh(12, 1, 1);
 
     // transition the "frameIndex" render target from the render target state to the present state. If the debug layer is enabled, you will receive a
     // warning if present is called on the render target when it's not in the present state
@@ -340,7 +341,9 @@ void Direct3D12::Cleanup()
     };
 
     m_pipelineStateObject->Release();
+    m_MSpipelineStateObject->Release();
     m_rootSignature->Release();
+    m_rootSignatureMS->Release();
     m_vertexBuffer->Release();
     m_indexBuffer->Release();
 
@@ -767,9 +770,8 @@ bool Direct3D12::InitShaderLayoutGPS()
     // shader bytecode, which of course is faster than compiling
     // them at runtime
 
-    // compile vertex shader
-    IDxcBlob* vertexShader; // d3d blob for holding vertex shader bytecode
-//    ID3DBlob* errorBuff; // a buffer holding the error data if any
+   
+
 
 //    hr = D3DCompileFromFile(L"Resources/Shaders/VertexShadertest.hlsl",
 //        nullptr,
@@ -789,14 +791,17 @@ bool Direct3D12::InitShaderLayoutGPS()
     m_shaderCompiler = new DXILShaderCompiler();
     m_shaderCompiler->init();
 
+    // compile vertex shader
+    IDxcBlob* vertexShader; // d3d blob for holding vertex shader bytecode
+
     DXILShaderCompiler::Desc desc;
     desc.source = nullptr;
     desc.sourceSize = 0;
     desc.filePath = L"Resources/Shaders/VertexShadertest.hlsl";
     desc.entryPoint = L"VSmain";
-    desc.targetProfile = L"vs_6_4";
+    desc.targetProfile = L"vs_6_5";
 
-    ;
+    
 
     if (FAILED(m_shaderCompiler->compile(&desc, &vertexShader)))
     {
@@ -812,10 +817,31 @@ bool Direct3D12::InitShaderLayoutGPS()
     vertexShaderBytecode.BytecodeLength = vertexShader->GetBufferSize();
     vertexShaderBytecode.pShaderBytecode = vertexShader->GetBufferPointer();
 
+    //InitMeshshader();
 
+    IDxcBlob* meshShader;
 
+    //DXILShaderCompiler::Desc desc;
+    desc.source = nullptr;
+    desc.sourceSize = 0;
+    desc.filePath = L"Resources/Shaders/testMS.hlsl";
+    desc.entryPoint = L"MSmain";
+    desc.targetProfile = L"ms_6_5";
 
+    if (FAILED(m_shaderCompiler->compile(&desc, &meshShader)))
+    {
+        MessageBox(0, L"Failed to complie mesh shader",
+            L"Error", MB_OK);
 
+        return false;
+    }
+
+    D3D12_SHADER_BYTECODE meshShaderBytecode = {};
+    meshShaderBytecode.BytecodeLength = meshShader->GetBufferSize();
+    meshShaderBytecode.pShaderBytecode = meshShader->GetBufferPointer();
+
+    m_device->CreateRootSignature(0, meshShaderBytecode.pShaderBytecode,
+        meshShaderBytecode.BytecodeLength, IID_PPV_ARGS(&m_rootSignatureMS));
 
     //// compile pixel shader
     IDxcBlob* pixelShader;
@@ -838,7 +864,7 @@ bool Direct3D12::InitShaderLayoutGPS()
     desc.sourceSize = 0;
     desc.filePath = L"Resources/Shaders/PixelShadertest.hlsl";
     desc.entryPoint = L"PSmain";
-    desc.targetProfile = L"ps_6_4";
+    desc.targetProfile = L"ps_6_5";
 
     if (FAILED(m_shaderCompiler->compile(&desc, &pixelShader)))
     {
@@ -885,6 +911,8 @@ bool Direct3D12::InitShaderLayoutGPS()
     DXGI_SAMPLE_DESC sampleDesc = {};
     sampleDesc.Count = 1; // multisample count (no multisampling, so we just put 1, since we still need 1 sample)
 
+
+
     D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {}; // a structure to define a pso
     psoDesc.InputLayout = inputLayoutDesc; // the structure describing our input layout
     psoDesc.pRootSignature = m_rootSignature; // the root signature that describes the input data this pso needs
@@ -900,12 +928,67 @@ bool Direct3D12::InitShaderLayoutGPS()
     psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT); // a default depth stencil state
     psoDesc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
 
+
+    ///
+
+    D3DX12_MESH_SHADER_PIPELINE_STATE_DESC MSpsoDesc = {};
+    MSpsoDesc.pRootSignature = m_rootSignatureMS;
+    MSpsoDesc.MS = meshShaderBytecode;
+    MSpsoDesc.PS = pixelShaderBytecode;
+    MSpsoDesc.NumRenderTargets = 1;
+    MSpsoDesc.RTVFormats[0] = m_renderTargets[0]->GetDesc().Format;
+    MSpsoDesc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
+    MSpsoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);    // CW front; cull back
+    MSpsoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);         // Opaque
+    MSpsoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT); // Less-equal depth test w/ writes; no stencil
+    MSpsoDesc.SampleMask = UINT_MAX;
+    MSpsoDesc.SampleDesc = DefaultSampleDesc();
+
+    auto MSpsoStream = CD3DX12_PIPELINE_MESH_STATE_STREAM(MSpsoDesc);
+
+    D3D12_PIPELINE_STATE_STREAM_DESC streamDesc;
+    streamDesc.pPipelineStateSubobjectStream = &MSpsoStream;
+    streamDesc.SizeInBytes = sizeof(MSpsoStream);
+
+    hr = m_device->CreatePipelineState(&streamDesc, IID_PPV_ARGS(&m_MSpipelineStateObject));
+    if (FAILED(hr))
+    {
+        return false;
+    }
+    ///
+
     // create the pso
     hr = m_device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineStateObject));
     if (FAILED(hr))
     {
         return false;
     }
+
+    return true;
+}
+
+bool Direct3D12::InitMeshshader()
+{
+
+    //D3DX12_MESH_SHADER_PIPELINE_STATE_DESC psoDesc = {};
+    //psoDesc.pRootSignature = m_rootSignature;
+    //psoDesc.MS = { meshShader.data, meshShader.size };
+    //psoDesc.PS = { pixelShader.data, pixelShader.size };
+    //psoDesc.NumRenderTargets = 1;
+    //psoDesc.RTVFormats[0] = m_renderTargets[0]->GetDesc().Format;
+    //psoDesc.DSVFormat = m_depthStencil->GetDesc().Format;
+    //psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);    // CW front; cull back
+    //psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);         // Opaque
+    //psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT); // Less-equal depth test w/ writes; no stencil
+    //psoDesc.SampleMask = UINT_MAX;
+    //psoDesc.SampleDesc = DefaultSampleDesc();
+
+
+
+    
+   
+
+
 
     return true;
 }
@@ -925,42 +1008,55 @@ bool Direct3D12::InitVertexIndexBuffer()
     //    {  0.5f,  0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f }
     //};
 
+
+
+   
+
+
     Vertex vList[] = {
         // front face
-        { -0.5f,  0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 1.0f },
-        {  0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 1.0f, 1.0f },
-        { -0.5f, -0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 1.0f },
-        {  0.5f,  0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f },
+        //{ -0.5f,  0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 1.0f },
+        //{  0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 1.0f, 1.0f },
+        //{ -0.5f, -0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 1.0f },
+        //{  0.5f,  0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f },
 
-        // right side face
-        {  0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 1.0f },
-        {  0.5f,  0.5f,  0.5f, 1.0f, 0.0f, 1.0f, 1.0f },
-        {  0.5f, -0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 1.0f },
-        {  0.5f,  0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f },
+        //// right side face
+        //{  0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 1.0f },
+        //{  0.5f,  0.5f,  0.5f, 1.0f, 0.0f, 1.0f, 1.0f },
+        //{  0.5f, -0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 1.0f },
+        //{  0.5f,  0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f },
 
-        // left side face
-        { -0.5f,  0.5f,  0.5f, 1.0f, 0.0f, 0.0f, 1.0f },
-        { -0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 1.0f, 1.0f },
-        { -0.5f, -0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 1.0f },
-        { -0.5f,  0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f },
+        //// left side face
+        //{ -0.5f,  0.5f,  0.5f, 1.0f, 0.0f, 0.0f, 1.0f },
+        //{ -0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 1.0f, 1.0f },
+        //{ -0.5f, -0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 1.0f },
+        //{ -0.5f,  0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f },
 
-        // back face
-        {  0.5f,  0.5f,  0.5f, 1.0f, 0.0f, 0.0f, 1.0f },
-        { -0.5f, -0.5f,  0.5f, 1.0f, 0.0f, 1.0f, 1.0f },
-        {  0.5f, -0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 1.0f },
-        { -0.5f,  0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 1.0f },
+        //// back face
+        //{  0.5f,  0.5f,  0.5f, 1.0f, 0.0f, 0.0f, 1.0f },
+        //{ -0.5f, -0.5f,  0.5f, 1.0f, 0.0f, 1.0f, 1.0f },
+        //{  0.5f, -0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 1.0f },
+        //{ -0.5f,  0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 1.0f },
 
-        // top face
-        { -0.5f,  0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 1.0f },
-        { 0.5f,  0.5f,  0.5f, 1.0f, 0.0f, 1.0f, 1.0f },
-        { 0.5f,  0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 1.0f },
-        { -0.5f,  0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 1.0f },
+        //// top face
+        //{ -0.5f,  0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 1.0f },
+        //{ 0.5f,  0.5f,  0.5f, 1.0f, 0.0f, 1.0f, 1.0f },
+        //{ 0.5f,  0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 1.0f },
+        //{ -0.5f,  0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 1.0f },
 
-        // bottom face
-        {  0.5f, -0.5f,  0.5f, 1.0f, 0.0f, 0.0f, 1.0f },
-        { -0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 1.0f, 1.0f },
-        {  0.5f, -0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 1.0f },
-        { -0.5f, -0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 1.0f },
+        //// bottom face
+        //{  0.5f, -0.5f,  0.5f, 1.0f, 0.0f, 0.0f, 1.0f },
+        //{ -0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 1.0f, 1.0f },
+        //{  0.5f, -0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 1.0f },
+        //{ -0.5f, -0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 1.0f },
+    {1.0f, 1.0f, 1.0f, 0.0f,0.0f,0.0f,1.0f},
+    {1.0f, 1.0f, -1.0f, 0.0f,0.0f,1.0f,1.0f},
+    {1.0f, -1.0f, 1.0f, 0.0f,1.0f,0.0f,1.0f},
+    {1.0f, -1.0f, -1.0f, 0.0f,1.0f,1.0f,1.0f},
+    {-1.0f, 1.0f, 1.0f, 1.0f,0.0f,0.0f,1.0f},
+    {-1.0f, 1.0f, -1.0f, 1.0f,0.0f,1.0f,1.0f},
+    {-1.0f, -1.0f, 1.0f, 1.0f,1.0f,0.0f,1.0f},
+    {-1.0f, -1.0f, -1.0f, 1.0f,1.0f,1.0f,1.0f},
     };
 
     int vBufferSize = sizeof(vList);
@@ -1018,29 +1114,41 @@ bool Direct3D12::InitVertexIndexBuffer()
     // Create index buffer
     // a quad (2 triangles)
     DWORD iList[] = {
-        // ffront face
-        0, 1, 2, // first triangle
-        0, 3, 1, // second triangle
+        //// ffront face
+        //0, 1, 2, // first triangle
+        //0, 3, 1, // second triangle
 
-        // left face
-        4, 5, 6, // first triangle
-        4, 7, 5, // second triangle
+        //// left face
+        //4, 5, 6, // first triangle
+        //4, 7, 5, // second triangle
 
-        // right face
-        8, 9, 10, // first triangle
-        8, 11, 9, // second triangle
+        //// right face
+        //8, 9, 10, // first triangle
+        //8, 11, 9, // second triangle
 
-        // back face
-        12, 13, 14, // first triangle
-        12, 15, 13, // second triangle
+        //// back face
+        //12, 13, 14, // first triangle
+        //12, 15, 13, // second triangle
 
-        // top face
-        16, 17, 18, // first triangle
-        16, 19, 17, // second triangle
+        //// top face
+        //16, 17, 18, // first triangle
+        //16, 19, 17, // second triangle
 
-        // bottom face
-        20, 21, 22, // first triangle
-        20, 23, 21, // second triangle
+        //// bottom face
+        //20, 21, 22, // first triangle
+        //20, 23, 21, // second triangle
+    0,2,1,
+    1,2,3,
+    4,5,6,
+    5,7,6,
+    0,1,5,
+    0,5,4,
+    2,6,7,
+    2,7,3,
+    0,4,6,
+    0,6,2,
+    1,3,7,
+    1,7,5,
     };
 
     int iBufferSize = sizeof(iList);

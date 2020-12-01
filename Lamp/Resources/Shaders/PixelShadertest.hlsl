@@ -2,10 +2,10 @@
 Texture2D t1 : register(t0);
 SamplerState s1 : register(s0);
 
-cbuffer ConstantBufferTest : register(b0)
-{
-    float4x4 wvpMat[2];
-};
+//cbuffer ConstantBufferTest : register(b0)
+//{
+//    float4x4 wvpMat[2];
+//};
 
 struct VS_OUTPUT
 {

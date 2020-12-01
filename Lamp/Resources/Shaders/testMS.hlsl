@@ -1,10 +1,11 @@
 
 //#define ROOT_SIG "CBV(b0)"
-
+//Texture2D t1 : register(t0);
+//SamplerState s1 : register(s0);
 
 cbuffer ConstantBufferTest : register(b0)
 {
-    float4x4 wvpMat[2];
+    float4x4 wvpMat;
 };
 
 struct MSvertex
@@ -15,7 +16,7 @@ struct MSvertex
 
 float4 TransformPos(float4 v) 
 {
-    return mul(v, wvpMat[1]);
+    return mul(v, wvpMat);
 }
 
 static float4 cubeVertices[] =
@@ -90,7 +91,7 @@ static uint3 cubeIndices[] =
         uint3(20, 23, 21),
 };
 
-[RootSignature(ROOT_SIG)]
+//[RootSignature(ROOT_SIG)]
 [OutputTopology("triangle")]
 [NumThreads(24, 1, 1)]
 void MSmain(

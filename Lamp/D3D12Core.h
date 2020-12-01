@@ -64,6 +64,7 @@ private:
 	void SetViewportSR(int width, int height);
 	void BuildCamMatrices(int width, int height);
 	bool LoadTextures();
+	void Signal();
 
 	ID3D12Device6* m_device;
 	ID3D12CommandQueue* m_commandQueue; // container for command lists
@@ -89,7 +90,7 @@ private:
 	/// to draw geometry 
 
 	ID3D12RootSignature* m_rootSignature; // root signature defines data shaders will access
-	ID3D12RootSignature* m_rootSignatureMS; // root signature defines data shaders will access
+	//ID3D12RootSignature* m_rootSignatureMS; // root signature defines data shaders will access
 
 	ID3D12PipelineState* m_pipelineStateObject; // pso containing a pipeline state
 	ID3D12PipelineState* m_MSpipelineStateObject; // pso containing a pipeline state

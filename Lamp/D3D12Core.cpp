@@ -27,7 +27,7 @@ Direct3D12::Direct3D12()
     m_frameIndex = 0;
     m_rtvDescriptorSize = 0;
     m_MSpipelineStateObject = nullptr;
-    m_rootSignatureMS = nullptr;
+    //m_rootSignatureMS = nullptr;
 }
 
 Direct3D12::~Direct3D12()
@@ -166,7 +166,7 @@ void Direct3D12::Update()
 
     // copy our ConstantBuffer instance to the mapped constant buffer resource
     //memcpy(m_cbvGPUAddress[m_frameIndex] + m_ConstantBufferPerObjectAlignedSize, &m_cbPerObject, sizeof(m_cbPerObject));
-    memcpy(m_cbvGPUAddress[m_frameIndex] + sizeof(m_cbPerObject), &m_cbPerObject, sizeof(m_cbPerObject));
+    memcpy(m_cbvGPUAddress[m_frameIndex] + m_ConstantBufferPerObjectAlignedSize, &m_cbPerObject, sizeof(m_cbPerObject));
 
     // store cube2's world matrix
     DirectX::XMStoreFloat4x4(&m_cube2WorldMat, worldMat);
@@ -254,10 +254,10 @@ bool Direct3D12::UpdatePipeline()
 
     // Mesh shader
     //m_commandList->SetGraphicsRootConstantBufferView(1, m_constantBufferUploadHeaps[m_frameIndex]->GetGPUVirtualAddress() + ConstantBufferPerObjectAlignedSize);
-    m_commandList->SetGraphicsRootConstantBufferView(1, m_constantBufferUploadHeaps[m_frameIndex]->GetGPUVirtualAddress() + sizeof(ConstantBufferPerObject));
+    m_commandList->SetGraphicsRootConstantBufferView(0, m_constantBufferUploadHeaps[m_frameIndex]->GetGPUVirtualAddress() + m_ConstantBufferPerObjectAlignedSize);
 
     m_commandList->SetPipelineState(m_MSpipelineStateObject);
-    m_commandList->SetGraphicsRootSignature(m_rootSignatureMS);
+    //m_commandList->SetGraphicsRootSignature(m_rootSignatureMS);
     m_commandList->DispatchMesh(24, 1, 1);
 
     // transition the "frameIndex" render target from the render target state to the present state. If the debug layer is enabled, you will receive a
@@ -293,14 +293,8 @@ void Direct3D12::Render()
     // this command goes in at the end of our command queue. we will know when our command queue 
     // has finished because the fence value will be set to "fenceValue" from the GPU since the command
     // queue is being executed on the GPU
-    m_fenceTopValue++;
-    hr = m_commandQueue->Signal(m_fence, m_fenceTopValue);
-    if (FAILED(hr))
-    {
-        MessageBox(0, L"Failed to signal command queue",
-            L"Error", MB_OK);
-    }
-    m_fenceValue[m_frameIndex] = m_fenceTopValue;
+    Signal();
+    
 
     // present the current backbuffer
     hr = m_swapChain->Present(0, 0);
@@ -358,7 +352,7 @@ void Direct3D12::Cleanup()
     m_pipelineStateObject->Release();
     m_MSpipelineStateObject->Release();
     m_rootSignature->Release();
-    m_rootSignatureMS->Release();
+    //m_rootSignatureMS->Release();
     m_vertexBuffer->Release();
     m_indexBuffer->Release();
 
@@ -638,13 +632,7 @@ bool Direct3D12::InitFence()
         return false;
     }
 
-    hr = m_commandQueue->Signal(m_fence, ++m_fenceTopValue);
-    if (FAILED(hr))
-    {
-        MessageBox(0, L"Failed to signal command queue",
-            L"Error", MB_OK);
-    }
-    m_fenceValue[m_frameIndex] = m_fenceTopValue;
+    Signal();
 
     return true;
 }
@@ -703,38 +691,6 @@ bool Direct3D12::InitRootSignature()
 
     // create a descriptor range (descriptor table) and fill it out
     // this is a range of descriptors inside a descriptor heap
-    //D3D12_DESCRIPTOR_RANGE  descriptorTableRanges[1]; // only one range right now
-    //descriptorTableRanges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV; // this is a range of constant buffer views (descriptors)
-    //descriptorTableRanges[0].NumDescriptors = 1; // we only have one constant buffer, so the range is only 1
-    //descriptorTableRanges[0].BaseShaderRegister = 0; // start index of the shader registers in the range
-    //descriptorTableRanges[0].RegisterSpace = 0; // space 0. can usually be zero
-    //descriptorTableRanges[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND; // this appends the range to the end of the root signature descriptor tables
-
-    //// create a descriptor table
-    //D3D12_ROOT_DESCRIPTOR_TABLE descriptorTable;
-    //descriptorTable.NumDescriptorRanges = _countof(descriptorTableRanges); // we only have one range
-    //descriptorTable.pDescriptorRanges = &descriptorTableRanges[0]; // the pointer to the beginning of our ranges array
-
-    //// create a root parameter and fill it out
-    //D3D12_ROOT_PARAMETER  rootParameters[1]; // only one parameter right now
-    //rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE; // this is a descriptor table
-    //rootParameters[0].DescriptorTable = descriptorTable; // this is our descriptor table for this root parameter
-    //rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX; // our pixel shader will be the only shader accessing this parameter for now
-
-    //CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc;
-    //rootSignatureDesc.Init(_countof(rootParameters), // we have 1 root parameter
-    //    rootParameters, // a pointer to the beginning of our root parameters array
-    //    0,
-    //    nullptr,
-    //    D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT | // we can deny shader stages here for better performance
-    //    D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
-    //    D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
-    //    D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
-    //    D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS
-    //);
-
-    // create a descriptor range (descriptor table) and fill it out
-// this is a range of descriptors inside a descriptor heap
     D3D12_DESCRIPTOR_RANGE  descriptorTableRanges[1]; // only one range right now
     descriptorTableRanges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV; // this is a range of shader resource views (descriptors)
     descriptorTableRanges[0].NumDescriptors = 1; // we only have one texture right now, so the range is only 1
@@ -756,13 +712,13 @@ bool Direct3D12::InitRootSignature()
     D3D12_ROOT_PARAMETER  rootParameters[2]; // only one parameter right now
     rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV; // this is a constant buffer view root descriptor
     rootParameters[0].Descriptor = rootCBVDescriptor; // this is the root descriptor for this root parameter
-    rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX; // our pixel shader will be the only shader accessing this parameter for now
+    rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL; // our pixel shader will be the only shader accessing this parameter for now
 
     // fill out the parameter for our descriptor table. Remember it's a good idea to sort parameters by frequency of change. Our constant
     // buffer will be changed multiple times per frame, while our descriptor table will not be changed at all (in this tutorial)
     rootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE; // this is a descriptor table
     rootParameters[1].DescriptorTable = descriptorTable; // this is our descriptor table for this root parameter
-    rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // our pixel shader will be the only shader accessing this parameter for now
+    rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL; // our pixel shader will be the only shader accessing this parameter for now
 
 
 
@@ -780,7 +736,7 @@ bool Direct3D12::InitRootSignature()
     sampler.MaxLOD = D3D12_FLOAT32_MAX;
     sampler.ShaderRegister = 0;
     sampler.RegisterSpace = 0;
-    sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+    sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
 
 
@@ -792,8 +748,7 @@ bool Direct3D12::InitRootSignature()
         D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT | // we can deny shader stages here for better performance
         D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
         D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
-        D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
-        D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS
+        D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS
     );
 
 
@@ -868,8 +823,8 @@ bool Direct3D12::InitShaderLayoutGPS()
     meshShaderBytecode.BytecodeLength = meshShader->GetBufferSize();
     meshShaderBytecode.pShaderBytecode = meshShader->GetBufferPointer();
 
-    m_device->CreateRootSignature(0, meshShaderBytecode.pShaderBytecode,
-        meshShaderBytecode.BytecodeLength, IID_PPV_ARGS(&m_rootSignatureMS));
+    //m_device->CreateRootSignature(0, meshShaderBytecode.pShaderBytecode,
+    //    meshShaderBytecode.BytecodeLength, IID_PPV_ARGS(&m_rootSignatureMS));
 
     //// compile pixel shader
     IDxcBlob* pixelShader;
@@ -942,7 +897,7 @@ bool Direct3D12::InitShaderLayoutGPS()
     ///
 
     D3DX12_MESH_SHADER_PIPELINE_STATE_DESC MSpsoDesc = {};
-    MSpsoDesc.pRootSignature = m_rootSignatureMS;
+    MSpsoDesc.pRootSignature = m_rootSignature;
     MSpsoDesc.MS = meshShaderBytecode;
     MSpsoDesc.PS = pixelShaderBytecode;
     MSpsoDesc.NumRenderTargets = 1;
@@ -953,7 +908,7 @@ bool Direct3D12::InitShaderLayoutGPS()
     MSpsoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT); // Less-equal depth test w/ writes; no stencil
     MSpsoDesc.SampleMask = UINT_MAX;
     MSpsoDesc.SampleDesc.Count = 1;// DefaultSampleDesc();
-    MSpsoDesc.SampleDesc.Quality = 1;
+    MSpsoDesc.SampleDesc.Quality = 0;
 
     auto MSpsoStream = CD3DX12_PIPELINE_MESH_STATE_STREAM(MSpsoDesc);
 
@@ -1209,12 +1164,7 @@ bool Direct3D12::InitVertexIndexBuffer()
 
 
     // increment the fence value now, otherwise the buffer might not be uploaded by the time we start drawing
-    m_fenceValue[m_frameIndex]++;
-    hr = m_commandQueue->Signal(m_fence, m_fenceValue[m_frameIndex]);
-    if (FAILED(hr))
-    {
-        return false;
-    }
+    Signal();
 
     WaitForNextFrameBuffers(m_swapChain->GetCurrentBackBufferIndex());
 
@@ -1331,6 +1281,18 @@ bool Direct3D12::LoadTextures()
 {
     HRESULT hr;
 
+    hr = m_commandAllocator[m_frameIndex]->Reset();
+    if (FAILED(hr))
+    {
+        return false;
+    }
+
+    hr = m_commandList->Reset(m_commandAllocator[m_frameIndex], NULL);
+    if (FAILED(hr))
+    {
+        return false;
+    }
+
     // Load the image from file
     D3D12_RESOURCE_DESC textureDesc;
     int imageBytesPerRow;
@@ -1410,32 +1372,34 @@ bool Direct3D12::LoadTextures()
     m_device->CreateShaderResourceView(m_textureBuffer, &srvDesc, m_mainDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 
     // Now we execute the command list to upload the initial assets (triangle data)
-    //m_commandList->Close();
+    m_commandList->Close();
     ID3D12CommandList* ppCommandLists[] = { m_commandList };
     m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
-    m_fenceTopValue++;
-    hr = m_commandQueue->Signal(m_fence, m_fenceTopValue);
-    if (FAILED(hr))
-    {
-        MessageBox(0, L"Failed to signal command queue",
-            L"Error", MB_OK);
-    }
-    m_fenceValue[m_frameIndex] = m_fenceTopValue;
+    Signal();
 
-    // increment the fence value now, otherwise the buffer might not be uploaded by the time we start drawing
-    /*fenceValue[frameIndex]++;
-    hr = m_commandQueue->Signal(fence[frameIndex], fenceValue[frameIndex]);
-    if (FAILED(hr))
-    {
-        return false;
-    }*/
+    WaitForNextFrameBuffers(m_swapChain->GetCurrentBackBufferIndex());
+
+
 
     // we are done with image data now that we've uploaded it to the gpu, so free it up
     delete imageData;
 
 
     return true;
+}
+
+void Direct3D12::Signal()
+{
+    HRESULT hr;
+    m_fenceTopValue++;
+    m_fenceValue[m_frameIndex] = m_fenceTopValue;
+    hr = m_commandQueue->Signal(m_fence, m_fenceTopValue);
+    if (FAILED(hr))
+    {
+        MessageBox(0, L"Failed to signal",
+            L"Error", MB_OK);
+    }
 }
 
 int Direct3D12::LoadImageDataFromFile(BYTE** imageData, D3D12_RESOURCE_DESC& resourceDescription, LPCWSTR filename, int& bytesPerRow)

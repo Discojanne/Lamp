@@ -1,8 +1,16 @@
 
+Texture2D t1 : register(t0);
+SamplerState s1 : register(s0);
+
+cbuffer ConstantBufferTest : register(b0)
+{
+    float4x4 wvpMat[2];
+};
+
 struct VS_OUTPUT
 {
     float4 pos: SV_POSITION;
-    float4 color: COLOR;
+    float2 texCoord: TEXCOORD;
 };
 
 float4 PSmain(VS_OUTPUT input) : SV_TARGET
@@ -16,6 +24,5 @@ float4 PSmain(VS_OUTPUT input) : SV_TARGET
     */
 
 
-
-    return input.color;
+     return t1.Sample(s1, input.texCoord);
 }

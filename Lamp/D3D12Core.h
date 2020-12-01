@@ -3,7 +3,7 @@
 #include "d3dx12.h"
 #include <dxgi1_4.h> // IDXGISwapChain3
 #include "directxmath.h"
-
+#include <wincodec.h> // WICPixelFormatGUID
 
 class DXILShaderCompiler;
 
@@ -23,11 +23,17 @@ public:
 	void WaitForNextFrameBuffers(int frameIndex); // wait until gpu is finished with command list
 	HANDLE getFenceEvent();
 	
-	struct Vertex {
+	/*struct Vertex {
 		Vertex(float x, float y, float z, float r, float g, float b, float a) : pos(x, y, z), color(r, g, b, z) {}
 		DirectX::XMFLOAT3 pos;
 		DirectX::XMFLOAT4 color;
 		
+	};*/
+
+	struct Vertex {
+		Vertex(float x, float y, float z, float u, float v) : pos(x, y, z), texCoord(u, v) {}
+		DirectX::XMFLOAT3 pos;
+		DirectX::XMFLOAT2 texCoord;
 	};
 
 	// this is the structure of our constant buffer.
@@ -57,7 +63,7 @@ private:
 	bool InitDepthTesting(int width, int height);
 	void SetViewportSR(int width, int height);
 	void BuildCamMatrices(int width, int height);
-	
+	bool LoadTextures();
 
 	ID3D12Device6* m_device;
 	ID3D12CommandQueue* m_commandQueue; // container for command lists
@@ -103,6 +109,22 @@ private:
 	ID3D12DescriptorHeap* m_dsDescriptorHeap; // This is a heap for our depth/stencil buffer descriptor
 
 	DXILShaderCompiler* m_shaderCompiler;
+
+	/// Texture stuff ¤ 
+
+	ID3D12Resource* m_textureBuffer; // the resource heap containing our texture
+
+	int LoadImageDataFromFile(BYTE** imageData, D3D12_RESOURCE_DESC& resourceDescription, LPCWSTR filename, int& bytesPerRow);
+
+	DXGI_FORMAT GetDXGIFormatFromWICFormat(WICPixelFormatGUID& wicFormatGUID);
+	WICPixelFormatGUID GetConvertToWICFormat(WICPixelFormatGUID& wicFormatGUID);
+	int GetDXGIFormatBitsPerPixel(DXGI_FORMAT& dxgiFormat);
+
+	ID3D12DescriptorHeap* m_mainDescriptorHeap;
+	ID3D12Resource* m_textureBufferUploadHeap;
+
+	///
+
 
 	/// Camera matrices etc
 	

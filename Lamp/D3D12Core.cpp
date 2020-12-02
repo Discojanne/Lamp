@@ -311,14 +311,7 @@ void Direct3D12::Render()
 void Direct3D12::Cleanup()
 {
     HRESULT hr;
-    m_fenceTopValue++;
-    hr = m_commandQueue->Signal(m_fence, m_fenceTopValue);
-    if (FAILED(hr))
-    {
-        MessageBox(0, L"Failed to signal command queue",
-            L"Error", MB_OK);
-    }
-    m_fenceValue[m_frameIndex] = m_fenceTopValue;
+    Signal();
 
     // wait for the gpu to finish all frames
     for (int i = 0; i < frameBufferCount; ++i)
@@ -337,7 +330,9 @@ void Direct3D12::Cleanup()
 
     m_rtvDescriptorHeap->Release();
     m_commandList->Release();
-    
+    m_textureBuffer->Release();
+    m_mainDescriptorHeap->Release();
+    m_textureBufferUploadHeap->Release();
 
     for (int i = 0; i < frameBufferCount; ++i)
     {

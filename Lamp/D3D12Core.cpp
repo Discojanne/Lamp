@@ -1297,7 +1297,7 @@ bool Direct3D12::LoadTextures()
     D3D12_RESOURCE_DESC textureDesc;
     int imageBytesPerRow;
     BYTE* imageData;
-    int imageSize = LoadImageDataFromFile(&imageData, textureDesc, L"nightmare3.png", imageBytesPerRow);
+    int imageSize = LoadImageDataFromFile(&imageData, textureDesc, testtexturename, imageBytesPerRow);
 
     // make sure we have data
     if (imageSize <= 0)

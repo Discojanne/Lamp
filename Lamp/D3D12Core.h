@@ -7,6 +7,8 @@
 
 class DXILShaderCompiler;
 
+#define testtexturename L"Resources/textures/nightmare3.png"
+
 class Direct3D12
 {
 public:

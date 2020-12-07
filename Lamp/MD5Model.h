@@ -20,18 +20,18 @@ public:
             float u, float v,
             float nx, float ny, float nz,
             float tx, float ty, float tz)
-            : pos(x, y, z), texCoord(u, v), normal(nx, ny, nz),
-            tangent(tx, ty, tz) {}
+            : pos(x, y, z), texCoord(u, v), normal(nx, ny, nz) {}
 
         XMFLOAT3 pos;
         XMFLOAT2 texCoord;
         XMFLOAT3 normal;
-        XMFLOAT3 tangent;
-        XMFLOAT3 biTangent;
+        //XMFLOAT3 tangent;
+        //XMFLOAT3 biTangent;
+        
 
         // Will not be sent to shader
-        int StartWeight;
-        int WeightCount;
+        unsigned int StartWeight;
+        unsigned int WeightCount;
     };
 
     struct Joint
@@ -55,7 +55,7 @@ public:
         int texArrayIndex;
         int numTriangles;
 
-        std::vector<Vertex> vertices;
+        std::vector<MD5Model::Vertex> vertices;
         std::vector<DWORD> indices;
         std::vector<Weight> weights;
 
@@ -68,6 +68,8 @@ public:
         ID3D12Resource* m_indexBuffer; // a default buffer in GPU memory that we will load index data for our triangle into
         D3D12_INDEX_BUFFER_VIEW m_indexBufferView; // a structure holding information about the index buffer
 
+        ID3D12Resource* m_vBufferUploadHeap;
+        ID3D12Resource* m_iBufferUploadHeap;
     };
 
     struct Model3D
@@ -82,15 +84,17 @@ public:
     MD5Model();
     ~MD5Model();
 
-    bool LoadMD5Model(std::wstring filename,
-        Model3D& MD5Model,
-        /*std::vector<ID3D12Resource*>& shaderResourceViewArray,*/
+    bool LoadMD5Model(ID3D12Device6* device, ID3D12GraphicsCommandList6* commandList, std::wstring filename,
         std::vector<std::wstring>* texFileNameArray);
-    Model3D m_model;
+    
+    void ReleaseUploadHeaps();
+    void CleanUp();
+    std::vector<ModelSubset>& GetModelSubsets();
+
 private:
 
-    void CleanUp();
+   
+    bool CreateVertexBuffers(ID3D12Device6* device, ID3D12GraphicsCommandList6* commandList, ModelSubset& subset);
 
-    XMMATRIX smilesWorld;
-    Model3D NewMD5Model;
+    Model3D m_model;
 };

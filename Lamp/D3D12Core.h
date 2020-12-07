@@ -26,19 +26,6 @@ public:
 	void Cleanup(); // release com ojects and clean up memory
 	void WaitForNextFrameBuffers(int frameIndex); // wait until gpu is finished with command list
 	HANDLE getFenceEvent();
-	
-	/*struct Vertex {
-		Vertex(float x, float y, float z, float r, float g, float b, float a) : pos(x, y, z), color(r, g, b, z) {}
-		DirectX::XMFLOAT3 pos;
-		DirectX::XMFLOAT4 color;
-		
-	};*/
-
-	struct Vertex {
-		Vertex(float x, float y, float z, float u, float v) : pos(x, y, z), texCoord(u, v) {}
-		DirectX::XMFLOAT3 pos;
-		DirectX::XMFLOAT2 texCoord;
-	};
 
 	// this is the structure of our constant buffer.
 	struct ConstantBuffer {
@@ -62,17 +49,13 @@ private:
 	bool InitConstantBuffer();
 	bool InitRootSignature();
 	bool InitShaderLayoutGPS();
+	bool LoadModels();
 	bool InitMeshshader();
-	bool InitVertexIndexBuffer();
 	bool InitDepthTesting(int width, int height);
 	void SetViewportSR(int width, int height);
 	void BuildCamMatrices(int width, int height);
 	bool LoadTextures(LPCWSTR texturepath);
 	void Signal();
-	bool LoadMD5Model(std::wstring filename,
-		MD5Model::Model3D& MD5Model,
-		/*std::vector<ID3D12Resource*>& shaderResourceViewArray,*/
-		std::vector<std::wstring>* texFileNameArray);
 
 	ID3D12Device6* m_device;
 	ID3D12CommandQueue* m_commandQueue; // container for command lists
@@ -102,13 +85,6 @@ private:
 
 	ID3D12PipelineState* m_pipelineStateObject; // pso containing a pipeline state
 	ID3D12PipelineState* m_MSpipelineStateObject; // pso containing a pipeline state
-
-	ID3D12Resource* m_vertexBuffer; // a default buffer in GPU memory that we will load vertex data for our triangle into
-	D3D12_VERTEX_BUFFER_VIEW m_vertexBufferView; // a structure containing a pointer to the vertex data in gpu memory
-											   // the total size of the buffer, and the size of each element (vertex)
-
-	ID3D12Resource* m_indexBuffer; // a default buffer in GPU memory that we will load index data for our triangle into
-	D3D12_INDEX_BUFFER_VIEW m_indexBufferView; // a structure holding information about the index buffer
 
 	D3D12_VIEWPORT m_viewport; // area that output from rasterizer will be stretched to.
 	D3D12_RECT m_scissorRect; // the area to draw in. pixels outside that area will not be drawn onto
@@ -173,6 +149,5 @@ private:
 	DirectX::XMFLOAT4X4 m_cube2RotMat; // this will keep track of our rotation for the second cube
 	DirectX::XMFLOAT4 m_cube2PositionOffset; // our second cube will rotate around the first cube, so this is the position offset from the first cube
 
-	int m_numCubeIndices; // the number of indices to draw the cube
 
 };

@@ -9,7 +9,8 @@ MD5Model::~MD5Model()
 {
 }
 
-bool MD5Model::LoadMD5Model(std::wstring filename, Model3D& MD5Model, std::vector<std::wstring>* texFileNameArray)
+bool MD5Model::LoadMD5Model(ID3D12Device6* device, ID3D12GraphicsCommandList6* commandList, 
+    std::wstring filename, std::vector<std::wstring>* texFileNameArray)
 {
 
     std::wifstream fileIn(filename.c_str());        // Open file
@@ -34,19 +35,19 @@ bool MD5Model::LoadMD5Model(std::wstring filename, Model3D& MD5Model, std::vecto
             }
             else if (checkString == L"numJoints")
             {
-                fileIn >> MD5Model.numJoints;        // Store number of joints
+                fileIn >> m_model.numJoints;        // Store number of joints
             }
             else if (checkString == L"numMeshes")
             {
-                fileIn >> MD5Model.numSubsets;        // Store number of meshes or subsets which we will call them
+                fileIn >> m_model.numSubsets;        // Store number of meshes or subsets which we will call them
             }
             else if (checkString == L"joints")
             {
-                Joint tempJoint;
+                MD5Model::Joint tempJoint;
 
                 fileIn >> checkString;                // Skip the "{"
 
-                for (int i = 0; i < MD5Model.numJoints; i++)
+                for (int i = 0; i < m_model.numJoints; i++)
                 {
                     fileIn >> tempJoint.name;        // Store joints name
                     // Sometimes the names might contain spaces. If that is the case, we need to continue
@@ -100,15 +101,19 @@ bool MD5Model::LoadMD5Model(std::wstring filename, Model3D& MD5Model, std::vecto
 
                     std::getline(fileIn, checkString);        // Skip rest of this line
 
-                    MD5Model.joints.push_back(tempJoint);    // Store the joint into this models joint vector
+                    m_model.joints.push_back(tempJoint);    // Store the joint into this models joint vector
                 }
 
                 fileIn >> checkString;                    // Skip the "}"
             }
             else if (checkString == L"mesh")
             {
-                ModelSubset subset;
+                
                 int numVerts, numTris, numWeights;
+
+                // Push back the temp subset into the models subset vector
+                m_model.subsets.emplace_back();
+                MD5Model::ModelSubset& subset = m_model.subsets.back();
 
                 fileIn >> checkString;                    // Skip the "{"
 
@@ -159,7 +164,12 @@ bool MD5Model::LoadMD5Model(std::wstring filename, Model3D& MD5Model, std::vecto
                         //if the texture is not already loaded, load it now
                         if (!alreadyLoaded)
                         {
+
                             (*texFileNameArray).push_back(fileNamePath.c_str());
+
+
+                            // read in textures
+
 
                             //ID3D12Resource* tempMeshSRV;
                             //hr = D3DX11CreateShaderResourceViewFromFile(d3d11Device, fileNamePath.c_str(),
@@ -188,7 +198,7 @@ bool MD5Model::LoadMD5Model(std::wstring filename, Model3D& MD5Model, std::vecto
 
                         for (int i = 0; i < numVerts; i++)
                         {
-                            Vertex tempVert;
+                            MD5Model::Vertex tempVert;
 
                             fileIn >> checkString                        // Skip "vert # ("
                                 >> checkString
@@ -238,7 +248,7 @@ bool MD5Model::LoadMD5Model(std::wstring filename, Model3D& MD5Model, std::vecto
 
                         for (int i = 0; i < numWeights; i++)
                         {
-                            Weight tempWeight;
+                            MD5Model::Weight tempWeight;
                             fileIn >> checkString >> checkString;        // Skip "weight #"
 
                             fileIn >> tempWeight.jointID;                // Store weight's joint ID
@@ -266,14 +276,14 @@ bool MD5Model::LoadMD5Model(std::wstring filename, Model3D& MD5Model, std::vecto
                 //*** find each vertex's position using the joints and weights ***//
                 for (int i = 0; i < subset.vertices.size(); ++i)
                 {
-                    Vertex tempVert = subset.vertices[i];
+                    MD5Model::Vertex tempVert = subset.vertices[i];
                     tempVert.pos = XMFLOAT3(0, 0, 0);    // Make sure the vertex's pos is cleared first
 
                     // Sum up the joints and weights information to get vertex's position
                     for (int j = 0; j < tempVert.WeightCount; ++j)
                     {
-                        Weight tempWeight = subset.weights[tempVert.StartWeight + j];
-                        Joint tempJoint = MD5Model.joints[tempWeight.jointID];
+                        MD5Model::Weight tempWeight = subset.weights[tempVert.StartWeight + j];
+                        MD5Model::Joint tempJoint = m_model.joints[tempWeight.jointID];
 
                         // Convert joint orientation and weight pos to vectors for easier computation
                         // When converting a 3d vector to a quaternion, you should put 0 for "w", and
@@ -390,40 +400,9 @@ bool MD5Model::LoadMD5Model(std::wstring filename, Model3D& MD5Model, std::vecto
                     normalSum = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
                     facesUsing = 0;
                 }
+             
+                CreateVertexBuffers(device, commandList, subset);
 
-                //// Create index buffer
-                D3D11_BUFFER_DESC indexBufferDesc;
-                ZeroMemory(&indexBufferDesc, sizeof(indexBufferDesc));
-
-                indexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-                indexBufferDesc.ByteWidth = sizeof(DWORD) * subset.numTriangles * 3;
-                indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-                indexBufferDesc.CPUAccessFlags = 0;
-                indexBufferDesc.MiscFlags = 0;
-
-                D3D11_SUBRESOURCE_DATA iinitData;
-
-                iinitData.pSysMem = &subset.indices[0];
-                d3d11Device->CreateBuffer(&indexBufferDesc, &iinitData, &subset.indexBuff);
-
-                //Create Vertex Buffer
-                D3D11_BUFFER_DESC vertexBufferDesc;
-                ZeroMemory(&vertexBufferDesc, sizeof(vertexBufferDesc));
-
-                vertexBufferDesc.Usage = D3D11_USAGE_DYNAMIC;                            // We will be updating this buffer, so we must set as dynamic
-                vertexBufferDesc.ByteWidth = sizeof(Vertex) * subset.vertices.size();
-                vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-                vertexBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;                // Give CPU power to write to buffer
-                vertexBufferDesc.MiscFlags = 0;
-
-                D3D11_SUBRESOURCE_DATA vertexBufferData;
-
-                ZeroMemory(&vertexBufferData, sizeof(vertexBufferData));
-                vertexBufferData.pSysMem = &subset.vertices[0];
-                hr = d3d11Device->CreateBuffer(&vertexBufferDesc, &vertexBufferData, &subset.vertBuff);
-
-                // Push back the temp subset into the models subset vector
-                MD5Model.subsets.push_back(subset);
             }
         }
     }
@@ -443,11 +422,149 @@ bool MD5Model::LoadMD5Model(std::wstring filename, Model3D& MD5Model, std::vecto
     return true;
 }
 
+void MD5Model::ReleaseUploadHeaps()
+{
+    for (auto& i: m_model.subsets)
+    {
+        if (i.m_vBufferUploadHeap)
+        {
+            i.m_vBufferUploadHeap->Release();
+            i.m_vBufferUploadHeap = nullptr;
+        }
+        if (i.m_iBufferUploadHeap)
+        {
+            i.m_iBufferUploadHeap->Release();
+            i.m_iBufferUploadHeap = nullptr;
+        }
+    }
+}
+
 void MD5Model::CleanUp()
 {
-    for (int i = 0; i < NewMD5Model.numSubsets; i++)
+    for (int i = 0; i < m_model.numSubsets; i++)
     {
-        NewMD5Model.subsets[i].m_indexBuffer->Release();
-        NewMD5Model.subsets[i].m_vertexBuffer->Release();
+        m_model.subsets[i].m_indexBuffer->Release();
+        m_model.subsets[i].m_vertexBuffer->Release();
     }
+}
+
+std::vector<MD5Model::ModelSubset>& MD5Model::GetModelSubsets()
+{
+    return m_model.subsets;
+}
+
+bool MD5Model::CreateVertexBuffers(ID3D12Device6* device, ID3D12GraphicsCommandList6* commandList, ModelSubset& subset)
+{
+    HRESULT hr;
+
+    int nrOfVertices = subset.vertices.size();
+    int vBufferSize = sizeof(MD5Model::Vertex) * nrOfVertices;
+
+    // create default heap
+    // default heap is memory on the GPU. Only the GPU has access to this memory
+    // To get data into this heap, we will have to upload the data using
+    // an upload heap
+    device->CreateCommittedResource(
+        &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT), // a default heap
+        D3D12_HEAP_FLAG_NONE, // no flags
+        &CD3DX12_RESOURCE_DESC::Buffer(vBufferSize), // resource description for a buffer
+        D3D12_RESOURCE_STATE_COPY_DEST, // we will start this heap in the copy destination state since we will copy data
+                                        // from the upload heap to this heap
+        nullptr, // optimized clear value must be null for this type of resource. used for render targets and depth/stencil buffers
+        IID_PPV_ARGS(&subset.m_vertexBuffer));
+
+    // we can give resource heaps a name so when we debug with the graphics debugger we know what resource we are looking at
+    subset.m_vertexBuffer->SetName(L"Vertex Buffer Resource Heap");
+
+    // create upload heap
+    // upload heaps are used to upload data to the GPU. CPU can write to it, GPU can read from it
+    // We will upload the vertex buffer using this heap to the default heap
+    subset.m_vBufferUploadHeap = nullptr;
+    device->CreateCommittedResource(
+        &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), // upload heap
+        D3D12_HEAP_FLAG_NONE, // no flags
+        &CD3DX12_RESOURCE_DESC::Buffer(vBufferSize), // resource description for a buffer
+        D3D12_RESOURCE_STATE_GENERIC_READ, // GPU will read from this buffer and copy its contents to the default heap
+        nullptr,
+        IID_PPV_ARGS(&subset.m_vBufferUploadHeap));
+    subset.m_vBufferUploadHeap->SetName(L"Vertex Buffer Upload Resource Heap");
+
+    // store vertex buffer in upload heap
+    D3D12_SUBRESOURCE_DATA vertexData = {};
+    vertexData.pData = reinterpret_cast<BYTE*>(subset.vertices.data()); // pointer to our vertex array
+    vertexData.RowPitch = vBufferSize; // size of all our triangle vertex data
+    vertexData.SlicePitch = vBufferSize; // also the size of our triangle vertex data
+
+    // we are now creating a command with the command list to copy the data from
+    // the upload heap to the default heap
+    if (!subset.m_vBufferUploadHeap)
+    {
+        return false;
+    }
+    else
+    {
+        UpdateSubresources(commandList, subset.m_vertexBuffer, subset.m_vBufferUploadHeap, 0, 0, 1, &vertexData);
+    }
+
+    // transition the vertex buffer data from copy destination state to vertex buffer state
+    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(subset.m_vertexBuffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
+
+
+
+
+
+    int nrOfIndices = subset.indices.size();
+    int iBufferSize = sizeof(DWORD) * nrOfIndices;
+
+    // create default heap to hold index buffer
+    device->CreateCommittedResource(
+        &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT), // a default heap
+        D3D12_HEAP_FLAG_NONE, // no flags
+        &CD3DX12_RESOURCE_DESC::Buffer(iBufferSize), // resource description for a buffer
+        D3D12_RESOURCE_STATE_COPY_DEST, // start in the copy destination state
+        nullptr, // optimized clear value must be null for this type of resource
+        IID_PPV_ARGS(& subset.m_indexBuffer));
+
+    // create upload heap to upload index buffer
+    
+    device->CreateCommittedResource(
+        &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), // upload heap
+        D3D12_HEAP_FLAG_NONE, // no flags
+        &CD3DX12_RESOURCE_DESC::Buffer(vBufferSize), // resource description for a buffer
+        D3D12_RESOURCE_STATE_GENERIC_READ, // GPU will read from this buffer and copy its contents to the default heap
+        nullptr,
+        IID_PPV_ARGS(&subset.m_iBufferUploadHeap));
+    subset.m_iBufferUploadHeap->SetName(L"Index Buffer Upload Resource Heap");
+
+    // store vertex buffer in upload heap
+    D3D12_SUBRESOURCE_DATA indexData = {};
+    indexData.pData = reinterpret_cast<BYTE*>(subset.indices.data()); // pointer to our index array
+    indexData.RowPitch = iBufferSize; // size of all our index buffer
+    indexData.SlicePitch = iBufferSize; // also the size of our index buffer
+
+    // we are now creating a command with the command list to copy the data from
+    // the upload heap to the default heap
+    if (!subset.m_iBufferUploadHeap)
+    {
+        return false;
+    }
+    else
+    {
+        UpdateSubresources(commandList, subset.m_indexBuffer, subset.m_iBufferUploadHeap, 0, 0, 1, &indexData);
+    }
+
+    // transition the vertex buffer data from copy destination state to vertex buffer state
+    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(subset.m_indexBuffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
+
+    // create a vertex buffer view for the triangle. We get the GPU memory address to the vertex pointer using the GetGPUVirtualAddress() method
+    subset.m_vertexBufferView.BufferLocation = subset.m_vertexBuffer->GetGPUVirtualAddress();
+    subset.m_vertexBufferView.StrideInBytes = sizeof(MD5Model::Vertex);
+    subset.m_vertexBufferView.SizeInBytes = vBufferSize;
+
+    // create a vertex buffer view for the triangle.We get the GPU memory address to the vertex pointer using the GetGPUVirtualAddress() method
+    subset.m_indexBufferView.BufferLocation = subset.m_indexBuffer->GetGPUVirtualAddress();
+    subset.m_indexBufferView.Format = DXGI_FORMAT_R32_UINT; // 32-bit unsigned integer (this is what a dword is, double word, a word is 2 bytes)
+    subset.m_indexBufferView.SizeInBytes = iBufferSize;
+
+    return true;
 }

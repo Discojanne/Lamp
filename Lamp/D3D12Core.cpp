@@ -84,17 +84,21 @@ bool Direct3D12::InitD3D(HWND hwnd, int width, int height)
     if (!InitShaderLayoutGPS())
         return false;
 
-    if (!InitVertexIndexBuffer())
+    if (!LoadModels())
         return false;
+
+    //m_textureNameArray = { L"face.jpg", L"arms.jpg", L"shirt.jpg", L"pants.jpg", L"shoes.jpg", };
+    //LoadMD5Model(L"boy.md5mesh", m_model->m_model, &m_textureNameArray);
+
+    //if (!InitVertexIndexBuffer())
+        //return false;
 
     if (!InitDepthTesting(width, height))
         return false;
 
-    m_model = new MD5Model();
-    //m_textureNameArray = { L"face.jpg", L"arms.jpg", L"shirt.jpg", L"pants.jpg", L"shoes.jpg", };
-    m_model->LoadMD5Model(L"boy.md5mesh", m_model->m_model, &m_textureNameArray);
+   
 
-    if (!LoadTextures(m_textureNameArray.at(4).c_str()))
+    if (!LoadTextures(m_textureNameArray.at(0).c_str()))
         return false;
     
 
@@ -122,7 +126,7 @@ void Direct3D12::Update()
     // create translation matrix for cube 1 from cube 1's position vector
     DirectX::XMMATRIX translationMat = DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat4(&m_cube1Position));
 
-    DirectX::XMMATRIX scaleMat = DirectX::XMMatrixScaling(0.5f, 0.5f, 0.5f);
+    DirectX::XMMATRIX scaleMat = DirectX::XMMatrixScaling(0.02f, 0.02f, 0.02f);
 
     // create cube1's world matrix by first rotating the cube, then positioning the rotated cube
     DirectX::XMMATRIX worldMat = scaleMat * rotMat * translationMat;
@@ -177,7 +181,7 @@ void Direct3D12::Update()
     // store cube2's world matrix
     DirectX::XMStoreFloat4x4(&m_cube2WorldMat, worldMat);
 
-
+    //BuildCamMatrices(800,600);
 }
 
 bool Direct3D12::UpdatePipeline()
@@ -233,8 +237,8 @@ bool Direct3D12::UpdatePipeline()
 
     m_commandList->RSSetViewports(1, &m_viewport); // set the viewports
     m_commandList->RSSetScissorRects(1, &m_scissorRect); // set the scissor rects
+    //m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST); // set the primitive topology
     m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // set the primitive topology
-
     
     m_commandList->SetGraphicsRootSignature(m_rootSignature); // set the root signature
 
@@ -245,17 +249,20 @@ bool Direct3D12::UpdatePipeline()
     // set the descriptor heap
     ID3D12DescriptorHeap* descriptorHeaps[] = { m_mainDescriptorHeap };
     m_commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
-    // set the descriptor table to the descriptor heap (parameter 1, as constant buffer root descriptor is parameter index 0)
-    m_commandList->SetGraphicsRootDescriptorTable(1, m_mainDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
     ///
 
     // draw triangle
     m_commandList->SetGraphicsRootConstantBufferView(0, m_constantBufferUploadHeaps[m_frameIndex]->GetGPUVirtualAddress());
-
     m_commandList->SetPipelineState(m_pipelineStateObject);
-    m_commandList->IASetVertexBuffers(0, 1, &m_vertexBufferView); // set the vertex buffer (using the vertex buffer view)
-    m_commandList->IASetIndexBuffer(&m_indexBufferView);
-    m_commandList->DrawIndexedInstanced(m_numCubeIndices, 1, 0, 0, 0);
+
+    for (auto& m: m_model->GetModelSubsets())
+    {
+        m_commandList->SetGraphicsRootDescriptorTable(1, m_mainDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+        m_commandList->IASetVertexBuffers(0, 1, &m.m_vertexBufferView); // set the vertex buffer (using the vertex buffer view)
+        m_commandList->IASetIndexBuffer(&m.m_indexBufferView);
+        m_commandList->DrawIndexedInstanced(m.indices.size(), 1, 0, 0, 0);
+    }
+    
 
 
     // Mesh shader
@@ -348,13 +355,10 @@ void Direct3D12::Cleanup()
 
     };
 
+    m_model->CleanUp();
     m_pipelineStateObject->Release();
     m_MSpipelineStateObject->Release();
     m_rootSignature->Release();
-    //m_rootSignatureMS->Release();
-    m_vertexBuffer->Release();
-    m_indexBuffer->Release();
-
     m_depthStencilBuffer->Release();
     m_dsDescriptorHeap->Release();
 
@@ -723,10 +727,10 @@ bool Direct3D12::InitRootSignature()
 
     // create a static sampler
     D3D12_STATIC_SAMPLER_DESC sampler = {};
-    sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
-    sampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
-    sampler.AddressV = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
-    sampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+    sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+    sampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+    sampler.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+    sampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
     sampler.MipLODBias = 0;
     sampler.MaxAnisotropy = 0;
     sampler.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
@@ -846,11 +850,21 @@ bool Direct3D12::InitShaderLayoutGPS()
     pixelShaderBytecode.BytecodeLength = pixelShader->GetBufferSize();
     pixelShaderBytecode.pShaderBytecode = pixelShader->GetBufferPointer();
 
+    //// create input layout
+    //D3D12_INPUT_ELEMENT_DESC inputLayout[] =
+    //{
+    //    { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+    //    { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+    //};
+
     // create input layout
     D3D12_INPUT_ELEMENT_DESC inputLayout[] =
     {
-        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        { "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        { "SW",   0, DXGI_FORMAT_R32_UINT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        { "WC",   0, DXGI_FORMAT_R32_UINT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
     };
 
     // fill out an input layout description structure
@@ -882,6 +896,7 @@ bool Direct3D12::InitShaderLayoutGPS()
     psoDesc.pRootSignature = m_rootSignature; // the root signature that describes the input data this pso needs
     psoDesc.VS = vertexShaderBytecode; // structure describing where to find the vertex shader bytecode and how large it is
     psoDesc.PS = pixelShaderBytecode; // same as VS but for pixel shader
+    //psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT; // type of topology we are drawing
     psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE; // type of topology we are drawing
     psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM; // format of the render target
     psoDesc.SampleDesc = sampleDesc; // must be the same sample description as the swapchain and depth/stencil buffer
@@ -932,6 +947,31 @@ bool Direct3D12::InitShaderLayoutGPS()
     return true;
 }
 
+bool Direct3D12::LoadModels()
+{
+
+    m_model = new MD5Model();
+    if (!m_model->LoadMD5Model(m_device, m_commandList, L"boy.md5mesh", &m_textureNameArray))
+        return false;
+
+
+
+
+    // Now we execute the command list to upload the initial assets (triangle data)
+    m_commandList->Close();
+    ID3D12CommandList* ppCommandLists[] = { m_commandList };
+    m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+
+    // increment the fence value now, otherwise the buffer might not be uploaded by the time we start drawing
+    Signal();
+
+    WaitForNextFrameBuffers(m_swapChain->GetCurrentBackBufferIndex());
+
+    m_model->ReleaseUploadHeaps();
+
+    return true;
+}
+
 bool Direct3D12::InitMeshshader()
 {
 
@@ -954,226 +994,6 @@ bool Direct3D12::InitMeshshader()
    
 
 
-
-    return true;
-}
-
-bool Direct3D12::InitVertexIndexBuffer()
-{
-    HRESULT hr;
-
-    // Create vertex buffer
-   /* Vertex vList[] = {
-    {1.0f, 1.0f, 1.0f, 0.0f,0.0f,0.0f,1.0f},
-    {1.0f, 1.0f, -1.0f, 0.0f,0.0f,1.0f,1.0f},
-    {1.0f, -1.0f, 1.0f, 0.0f,1.0f,0.0f,1.0f},
-    {1.0f, -1.0f, -1.0f, 0.0f,1.0f,1.0f,1.0f},
-    {-1.0f, 1.0f, 1.0f, 1.0f,0.0f,0.0f,1.0f},
-    {-1.0f, 1.0f, -1.0f, 1.0f,0.0f,1.0f,1.0f},
-    {-1.0f, -1.0f, 1.0f, 1.0f,1.0f,0.0f,1.0f},
-    {-1.0f, -1.0f, -1.0f, 1.0f,1.0f,1.0f,1.0f},
-    };*/
-
-    Vertex vList[] = {
-        // front face
-        { -0.5f,  0.5f, -0.5f, 0.0f, 0.0f },
-        {  0.5f, -0.5f, -0.5f, 1.0f, 1.0f },
-        { -0.5f, -0.5f, -0.5f, 0.0f, 1.0f },
-        {  0.5f,  0.5f, -0.5f, 1.0f, 0.0f },
-
-        // right side face
-        {  0.5f, -0.5f, -0.5f, 0.0f, 1.0f },
-        {  0.5f,  0.5f,  0.5f, 1.0f, 0.0f },
-        {  0.5f, -0.5f,  0.5f, 1.0f, 1.0f },
-        {  0.5f,  0.5f, -0.5f, 0.0f, 0.0f },
-
-        // left side face
-        { -0.5f,  0.5f,  0.5f, 0.0f, 0.0f },
-        { -0.5f, -0.5f, -0.5f, 1.0f, 1.0f },
-        { -0.5f, -0.5f,  0.5f, 0.0f, 1.0f },
-        { -0.5f,  0.5f, -0.5f, 1.0f, 0.0f },
-
-        // back face
-        {  0.5f,  0.5f,  0.5f, 0.0f, 0.0f },
-        { -0.5f, -0.5f,  0.5f, 1.0f, 1.0f },
-        {  0.5f, -0.5f,  0.5f, 0.0f, 1.0f },
-        { -0.5f,  0.5f,  0.5f, 1.0f, 0.0f },
-
-        // top face
-        { -0.5f,  0.5f, -0.5f, 0.0f, 1.0f },
-        {  0.5f,  0.5f,  0.5f, 1.0f, 0.0f },
-        {  0.5f,  0.5f, -0.5f, 1.0f, 1.0f },
-        { -0.5f,  0.5f,  0.5f, 0.0f, 0.0f },
-
-        // bottom face
-        {  0.5f, -0.5f,  0.5f, 0.0f, 0.0f },
-        { -0.5f, -0.5f, -0.5f, 1.0f, 1.0f },
-        {  0.5f, -0.5f, -0.5f, 0.0f, 1.0f },
-        { -0.5f, -0.5f,  0.5f, 1.0f, 0.0f },
-    };
-
-    int vBufferSize = sizeof(vList);
-
-    // create default heap
-    // default heap is memory on the GPU. Only the GPU has access to this memory
-    // To get data into this heap, we will have to upload the data using
-    // an upload heap
-    m_device->CreateCommittedResource(
-        &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT), // a default heap
-        D3D12_HEAP_FLAG_NONE, // no flags
-        &CD3DX12_RESOURCE_DESC::Buffer(vBufferSize), // resource description for a buffer
-        D3D12_RESOURCE_STATE_COPY_DEST, // we will start this heap in the copy destination state since we will copy data
-                                        // from the upload heap to this heap
-        nullptr, // optimized clear value must be null for this type of resource. used for render targets and depth/stencil buffers
-        IID_PPV_ARGS(&m_vertexBuffer));
-
-    // we can give resource heaps a name so when we debug with the graphics debugger we know what resource we are looking at
-    m_vertexBuffer->SetName(L"Vertex Buffer Resource Heap");
-
-    // create upload heap
-    // upload heaps are used to upload data to the GPU. CPU can write to it, GPU can read from it
-    // We will upload the vertex buffer using this heap to the default heap
-    ID3D12Resource* vBufferUploadHeap = nullptr;
-    m_device->CreateCommittedResource(
-        &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), // upload heap
-        D3D12_HEAP_FLAG_NONE, // no flags
-        &CD3DX12_RESOURCE_DESC::Buffer(vBufferSize), // resource description for a buffer
-        D3D12_RESOURCE_STATE_GENERIC_READ, // GPU will read from this buffer and copy its contents to the default heap
-        nullptr,
-        IID_PPV_ARGS(&vBufferUploadHeap));
-    vBufferUploadHeap->SetName(L"Vertex Buffer Upload Resource Heap");
-
-    // store vertex buffer in upload heap
-    D3D12_SUBRESOURCE_DATA vertexData = {};
-    vertexData.pData = reinterpret_cast<BYTE*>(vList); // pointer to our vertex array
-    vertexData.RowPitch = vBufferSize; // size of all our triangle vertex data
-    vertexData.SlicePitch = vBufferSize; // also the size of our triangle vertex data
-
-    // we are now creating a command with the command list to copy the data from
-    // the upload heap to the default heap
-    if (!vBufferUploadHeap)
-    {
-        return false;
-    }
-    else
-    {
-        UpdateSubresources(m_commandList, m_vertexBuffer, vBufferUploadHeap, 0, 0, 1, &vertexData);
-    }
-
-    // transition the vertex buffer data from copy destination state to vertex buffer state
-    m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_vertexBuffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
-
-    
-    // Create index buffer
-    // a quad (2 triangles)
-    DWORD iList[] = {
-        // ffront face
-        0, 1, 2, // first triangle
-        0, 3, 1, // second triangle
-
-        // left face
-        4, 5, 6, // first triangle
-        4, 7, 5, // second triangle
-
-        // right face
-        8, 9, 10, // first triangle
-        8, 11, 9, // second triangle
-
-        // back face
-        12, 13, 14, // first triangle
-        12, 15, 13, // second triangle
-
-        // top face
-        16, 17, 18, // first triangle
-        16, 19, 17, // second triangle
-
-        // bottom face
-        20, 21, 22, // first triangle
-        20, 23, 21, // second triangle
-   /* 0,2,1,
-    1,2,3,
-    4,5,6,
-    5,7,6,
-    0,1,5,
-    0,5,4,
-    2,6,7,
-    2,7,3,
-    0,4,6,
-    0,6,2,
-    1,3,7,
-    1,7,5,*/
-    };
-
-    int iBufferSize = sizeof(iList);
-    m_numCubeIndices = sizeof(iList) / sizeof(DWORD);
-    // create default heap to hold index buffer
-    m_device->CreateCommittedResource(
-        &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT), // a default heap
-        D3D12_HEAP_FLAG_NONE, // no flags
-        &CD3DX12_RESOURCE_DESC::Buffer(iBufferSize), // resource description for a buffer
-        D3D12_RESOURCE_STATE_COPY_DEST, // start in the copy destination state
-        nullptr, // optimized clear value must be null for this type of resource
-        IID_PPV_ARGS(&m_indexBuffer));
-
-    // create upload heap to upload index buffer
-    ID3D12Resource* iBufferUploadHeap;
-    m_device->CreateCommittedResource(
-        &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), // upload heap
-        D3D12_HEAP_FLAG_NONE, // no flags
-        &CD3DX12_RESOURCE_DESC::Buffer(vBufferSize), // resource description for a buffer
-        D3D12_RESOURCE_STATE_GENERIC_READ, // GPU will read from this buffer and copy its contents to the default heap
-        nullptr,
-        IID_PPV_ARGS(&iBufferUploadHeap));
-    iBufferUploadHeap->SetName(L"Index Buffer Upload Resource Heap");
-
-    // store vertex buffer in upload heap
-    D3D12_SUBRESOURCE_DATA indexData = {};
-    indexData.pData = reinterpret_cast<BYTE*>(iList); // pointer to our index array
-    indexData.RowPitch = iBufferSize; // size of all our index buffer
-    indexData.SlicePitch = iBufferSize; // also the size of our index buffer
-
-    // we are now creating a command with the command list to copy the data from
-    // the upload heap to the default heap
-    if (!iBufferUploadHeap)
-    {
-        return false;
-    }
-    else
-    {
-        UpdateSubresources(m_commandList, m_indexBuffer, iBufferUploadHeap, 0, 0, 1, &indexData);
-    }
-
-    // transition the vertex buffer data from copy destination state to vertex buffer state
-    m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_indexBuffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
-
-    // Now we execute the command list to upload the initial assets (triangle data)
-    m_commandList->Close();
-    ID3D12CommandList* ppCommandLists[] = { m_commandList };
-    m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
-
-    // create a vertex buffer view for the triangle. We get the GPU memory address to the vertex pointer using the GetGPUVirtualAddress() method
-    m_indexBufferView.BufferLocation = m_indexBuffer->GetGPUVirtualAddress();
-    m_indexBufferView.Format = DXGI_FORMAT_R32_UINT; // 32-bit unsigned integer (this is what a dword is, double word, a word is 2 bytes)
-    m_indexBufferView.SizeInBytes = iBufferSize;
-
-    // create a vertex buffer view for the triangle. We get the GPU memory address to the vertex pointer using the GetGPUVirtualAddress() method
-    m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
-    m_vertexBufferView.StrideInBytes = sizeof(Vertex);
-    m_vertexBufferView.SizeInBytes = vBufferSize;
-
-
-    // increment the fence value now, otherwise the buffer might not be uploaded by the time we start drawing
-    Signal();
-
-    WaitForNextFrameBuffers(m_swapChain->GetCurrentBackBufferIndex());
-
-    iBufferUploadHeap->Release();
-    vBufferUploadHeap->Release();
-
-
-    
-
-    
 
     return true;
 }
@@ -1242,8 +1062,15 @@ void Direct3D12::BuildCamMatrices(int width, int height)
     DirectX::XMMATRIX tmpMat = DirectX::XMMatrixPerspectiveFovLH(45.0f * (3.14f / 180.0f), (float)width / (float)height, 0.1f, 1000.0f);
     XMStoreFloat4x4(&m_cameraProjMat, tmpMat);
 
+   /* static float fade = 0;
+    if (fade > -120.0f)
+    {
+        fade -= 0.02f;
+    }*/
+    
+
     // set starting camera state
-    m_cameraPosition = DirectX::XMFLOAT4(0.0f, 2.0f, -4.0f, 0.0f);
+    m_cameraPosition = DirectX::XMFLOAT4(0.0f, 2.0f, -6.0f, 0.0f);
     m_cameraTarget = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
     m_cameraUp = DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 0.0f);
 
@@ -1399,574 +1226,6 @@ void Direct3D12::Signal()
         MessageBox(0, L"Failed to signal",
             L"Error", MB_OK);
     }
-}
-
-bool Direct3D12::LoadMD5Model(std::wstring filename, MD5Model::Model3D& MD5Model, std::vector<std::wstring>* texFileNameArray)
-{
-
-    std::wifstream fileIn(filename.c_str());        // Open file
-
-    std::wstring checkString;                        // Stores the next string from our file
-
-    if (fileIn)                                        // Check if the file was opened
-    {
-        while (fileIn)                                // Loop until the end of the file is reached
-        {
-            fileIn >> checkString;                    // Get next string from file
-
-            if (checkString == L"MD5Version")        // Get MD5 version (this function supports version 10)
-            {
-                /*fileIn >> checkString;
-                MessageBox(0, checkString.c_str(),    //display message
-                L"MD5Version", MB_OK);*/
-            }
-            else if (checkString == L"commandline")
-            {
-                std::getline(fileIn, checkString);    // Ignore the rest of this line
-            }
-            else if (checkString == L"numJoints")
-            {
-                fileIn >> MD5Model.numJoints;        // Store number of joints
-            }
-            else if (checkString == L"numMeshes")
-            {
-                fileIn >> MD5Model.numSubsets;        // Store number of meshes or subsets which we will call them
-            }
-            else if (checkString == L"joints")
-            {
-                MD5Model::Joint tempJoint;
-
-                fileIn >> checkString;                // Skip the "{"
-
-                for (int i = 0; i < MD5Model.numJoints; i++)
-                {
-                    fileIn >> tempJoint.name;        // Store joints name
-                    // Sometimes the names might contain spaces. If that is the case, we need to continue
-                    // to read the name until we get to the closing " (quotation marks)
-                    if (tempJoint.name[tempJoint.name.size() - 1] != '"')
-                    {
-                        wchar_t checkChar;
-                        bool jointNameFound = false;
-                        while (!jointNameFound)
-                        {
-                            checkChar = fileIn.get();
-
-                            if (checkChar == '"')
-                                jointNameFound = true;
-
-                            tempJoint.name += checkChar;
-                        }
-                    }
-
-                    fileIn >> tempJoint.parentID;    // Store Parent joint's ID
-
-                    fileIn >> checkString;            // Skip the "("
-
-                    // Store position of this joint (swap y and z axis if model was made in RH Coord Sys)
-                    fileIn >> tempJoint.pos.x >> tempJoint.pos.z >> tempJoint.pos.y;
-
-                    fileIn >> checkString >> checkString;    // Skip the ")" and "("
-
-                    // Store orientation of this joint
-                    fileIn >> tempJoint.orientation.x >> tempJoint.orientation.z >> tempJoint.orientation.y;
-
-                    // Remove the quotation marks from joints name
-                    tempJoint.name.erase(0, 1);
-                    //tempJoint.name.erase(tempJoint.name.size()-1, 1);
-
-                    // Compute the w axis of the quaternion (The MD5 model uses a 3D vector to describe the
-                    // direction the bone is facing. However, we need to turn this into a quaternion, and the way
-                    // quaternions work, is the xyz values describe the axis of rotation, while the w is a value
-                    // between 0 and 1 which describes the angle of rotation)
-                    float t = 1.0f - (tempJoint.orientation.x * tempJoint.orientation.x)
-                        - (tempJoint.orientation.y * tempJoint.orientation.y)
-                        - (tempJoint.orientation.z * tempJoint.orientation.z);
-                    if (t < 0.0f)
-                    {
-                        tempJoint.orientation.w = 0.0f;
-                    }
-                    else
-                    {
-                        tempJoint.orientation.w = -sqrtf(t);
-                    }
-
-                    std::getline(fileIn, checkString);        // Skip rest of this line
-
-                    MD5Model.joints.push_back(tempJoint);    // Store the joint into this models joint vector
-                }
-
-                fileIn >> checkString;                    // Skip the "}"
-            }
-            else if (checkString == L"mesh")
-            {
-                MD5Model::ModelSubset subset;
-                int numVerts, numTris, numWeights;
-
-                fileIn >> checkString;                    // Skip the "{"
-
-                fileIn >> checkString;
-                while (checkString != L"}")            // Read until '}'
-                {
-                    // In this lesson, for the sake of simplicity, we will assume a textures filename is givin here.
-                    // Usually though, the name of a material (stored in a material library. Think back to the lesson on
-                    // loading .obj files, where the material library was contained in the file .mtl) is givin. Let this
-                    // be an exercise to load the material from a material library such as obj's .mtl file, instead of
-                    // just the texture like we will do here.
-                    if (checkString == L"shader")        // Load the texture or material
-                    {
-                        std::wstring fileNamePath;
-                        fileIn >> fileNamePath;            // Get texture's filename
-
-                        // Take spaces into account if filename or material name has a space in it
-                        if (fileNamePath[fileNamePath.size() - 1] != '"')
-                        {
-                            wchar_t checkChar;
-                            bool fileNameFound = false;
-                            while (!fileNameFound)
-                            {
-                                checkChar = fileIn.get();
-
-                                if (checkChar == '"')
-                                    fileNameFound = true;
-
-                                fileNamePath += checkChar;
-                            }
-                        }
-
-                        // Remove the quotation marks from texture path
-                        fileNamePath.erase(0, 1);
-                        fileNamePath.erase(fileNamePath.size() - 1, 1);
-
-                        //check if this texture has already been loaded
-                        bool alreadyLoaded = false;
-                        for (int i = 0; i < (*texFileNameArray).size(); ++i)
-                        {
-                            if (fileNamePath == (*texFileNameArray)[i])
-                            {
-                                alreadyLoaded = true;
-                                subset.texArrayIndex = i;
-                            }
-                        }
-
-                        //if the texture is not already loaded, load it now
-                        if (!alreadyLoaded)
-                        {
-                            
-                            (*texFileNameArray).push_back(fileNamePath.c_str());
-
-
-                            // read in textures
-
-
-                            //ID3D12Resource* tempMeshSRV;
-                            //hr = D3DX11CreateShaderResourceViewFromFile(d3d11Device, fileNamePath.c_str(),
-                            //    NULL, NULL, &tempMeshSRV, NULL);
-                            //if (SUCCEEDED(hr))
-                            //{
-                            //    texFileNameArray.push_back(fileNamePath.c_str());
-                            //    subset.texArrayIndex = shaderResourceViewArray.size();
-                            //    shaderResourceViewArray.push_back(tempMeshSRV);
-                            //}
-                            //else
-                            //{
-                            //    MessageBox(0, fileNamePath.c_str(),        //display message
-                            //        L"Could Not Open:", MB_OK);
-                            //    return false;
-                            //}
-                        }
-
-                        std::getline(fileIn, checkString);                // Skip rest of this line
-                    }
-                    else if (checkString == L"numverts")
-                    {
-                        fileIn >> numVerts;                                // Store number of vertices
-
-                        std::getline(fileIn, checkString);                // Skip rest of this line
-
-                        for (int i = 0; i < numVerts; i++)
-                        {
-                            MD5Model::Vertex tempVert;
-
-                            fileIn >> checkString                        // Skip "vert # ("
-                                >> checkString
-                                >> checkString;
-
-                            fileIn >> tempVert.texCoord.x                // Store tex coords
-                                >> tempVert.texCoord.y;
-
-                            fileIn >> checkString;                        // Skip ")"
-
-                            fileIn >> tempVert.StartWeight;                // Index of first weight this vert will be weighted to
-
-                            fileIn >> tempVert.WeightCount;                // Number of weights for this vertex
-
-                            std::getline(fileIn, checkString);            // Skip rest of this line
-
-                            subset.vertices.push_back(tempVert);        // Push back this vertex into subsets vertex vector
-                        }
-                    }
-                    else if (checkString == L"numtris")
-                    {
-                        fileIn >> numTris;
-                        subset.numTriangles = numTris;
-
-                        std::getline(fileIn, checkString);                // Skip rest of this line
-
-                        for (int i = 0; i < numTris; i++)                // Loop through each triangle
-                        {
-                            DWORD tempIndex;
-                            fileIn >> checkString;                        // Skip "tri"
-                            fileIn >> checkString;                        // Skip tri counter
-
-                            for (int k = 0; k < 3; k++)                    // Store the 3 indices
-                            {
-                                fileIn >> tempIndex;
-                                subset.indices.push_back(tempIndex);
-                            }
-
-                            std::getline(fileIn, checkString);            // Skip rest of this line
-                        }
-                    }
-                    else if (checkString == L"numweights")
-                    {
-                        fileIn >> numWeights;
-
-                        std::getline(fileIn, checkString);                // Skip rest of this line
-
-                        for (int i = 0; i < numWeights; i++)
-                        {
-                            MD5Model::Weight tempWeight;
-                            fileIn >> checkString >> checkString;        // Skip "weight #"
-
-                            fileIn >> tempWeight.jointID;                // Store weight's joint ID
-
-                            fileIn >> tempWeight.bias;                    // Store weight's influence over a vertex
-
-                            fileIn >> checkString;                        // Skip "("
-
-                            fileIn >> tempWeight.pos.x                    // Store weight's pos in joint's local space
-                                >> tempWeight.pos.z
-                                >> tempWeight.pos.y;
-
-                            std::getline(fileIn, checkString);            // Skip rest of this line
-
-                            subset.weights.push_back(tempWeight);        // Push back tempWeight into subsets Weight array
-                        }
-
-                    }
-                    else
-                        std::getline(fileIn, checkString);                // Skip anything else
-
-                    fileIn >> checkString;                                // Skip "}"
-                }
-
-                //*** find each vertex's position using the joints and weights ***//
-                for (int i = 0; i < subset.vertices.size(); ++i)
-                {
-                    MD5Model::Vertex tempVert = subset.vertices[i];
-                    tempVert.pos = XMFLOAT3(0, 0, 0);    // Make sure the vertex's pos is cleared first
-
-                    // Sum up the joints and weights information to get vertex's position
-                    for (int j = 0; j < tempVert.WeightCount; ++j)
-                    {
-                        MD5Model::Weight tempWeight = subset.weights[tempVert.StartWeight + j];
-                        MD5Model::Joint tempJoint = MD5Model.joints[tempWeight.jointID];
-
-                        // Convert joint orientation and weight pos to vectors for easier computation
-                        // When converting a 3d vector to a quaternion, you should put 0 for "w", and
-                        // When converting a quaternion to a 3d vector, you can just ignore the "w"
-                        XMVECTOR tempJointOrientation = XMVectorSet(tempJoint.orientation.x, tempJoint.orientation.y, tempJoint.orientation.z, tempJoint.orientation.w);
-                        XMVECTOR tempWeightPos = XMVectorSet(tempWeight.pos.x, tempWeight.pos.y, tempWeight.pos.z, 0.0f);
-
-                        // We will need to use the conjugate of the joint orientation quaternion
-                        // To get the conjugate of a quaternion, all you have to do is inverse the x, y, and z
-                        XMVECTOR tempJointOrientationConjugate = XMVectorSet(-tempJoint.orientation.x, -tempJoint.orientation.y, -tempJoint.orientation.z, tempJoint.orientation.w);
-
-                        // Calculate vertex position (in joint space, eg. rotate the point around (0,0,0)) for this weight using the joint orientation quaternion and its conjugate
-                        // We can rotate a point using a quaternion with the equation "rotatedPoint = quaternion * point * quaternionConjugate"
-                        XMFLOAT3 rotatedPoint;
-                        XMStoreFloat3(&rotatedPoint, XMQuaternionMultiply(XMQuaternionMultiply(tempJointOrientation, tempWeightPos), tempJointOrientationConjugate));
-
-                        // Now move the verices position from joint space (0,0,0) to the joints position in world space, taking the weights bias into account
-                        // The weight bias is used because multiple weights might have an effect on the vertices final position. Each weight is attached to one joint.
-                        tempVert.pos.x += (tempJoint.pos.x + rotatedPoint.x) * tempWeight.bias;
-                        tempVert.pos.y += (tempJoint.pos.y + rotatedPoint.y) * tempWeight.bias;
-                        tempVert.pos.z += (tempJoint.pos.z + rotatedPoint.z) * tempWeight.bias;
-
-                        // Basically what has happened above, is we have taken the weights position relative to the joints position
-                        // we then rotate the weights position (so that the weight is actually being rotated around (0, 0, 0) in world space) using
-                        // the quaternion describing the joints rotation. We have stored this rotated point in rotatedPoint, which we then add to
-                        // the joints position (because we rotated the weight's position around (0,0,0) in world space, and now need to translate it
-                        // so that it appears to have been rotated around the joints position). Finally we multiply the answer with the weights bias,
-                        // or how much control the weight has over the final vertices position. All weight's bias effecting a single vertex's position
-                        // must add up to 1.
-                    }
-
-                    subset.positions.push_back(tempVert.pos);            // Store the vertices position in the position vector instead of straight into the vertex vector
-                    // since we can use the positions vector for certain things like collision detection or picking
-                    // without having to work with the entire vertex structure.
-                }
-
-                // Put the positions into the vertices for this subset
-                for (int i = 0; i < subset.vertices.size(); i++)
-                {
-                    subset.vertices[i].pos = subset.positions[i];
-                }
-
-                //*** Calculate vertex normals using normal averaging ***///
-                std::vector<XMFLOAT3> tempNormal;
-
-                //normalized and unnormalized normals
-                XMFLOAT3 unnormalized = XMFLOAT3(0.0f, 0.0f, 0.0f);
-
-                //Used to get vectors (sides) from the position of the verts
-                float vecX, vecY, vecZ;
-
-                //Two edges of our triangle
-                XMVECTOR edge1 = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
-                XMVECTOR edge2 = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
-
-                //Compute face normals
-                for (int i = 0; i < subset.numTriangles; ++i)
-                {
-                    //Get the vector describing one edge of our triangle (edge 0,2)
-                    vecX = subset.vertices[subset.indices[(i * 3)]].pos.x - subset.vertices[subset.indices[(i * 3) + 2]].pos.x;
-                    vecY = subset.vertices[subset.indices[(i * 3)]].pos.y - subset.vertices[subset.indices[(i * 3) + 2]].pos.y;
-                    vecZ = subset.vertices[subset.indices[(i * 3)]].pos.z - subset.vertices[subset.indices[(i * 3) + 2]].pos.z;
-                    edge1 = XMVectorSet(vecX, vecY, vecZ, 0.0f);    //Create our first edge
-
-                    //Get the vector describing another edge of our triangle (edge 2,1)
-                    vecX = subset.vertices[subset.indices[(i * 3) + 2]].pos.x - subset.vertices[subset.indices[(i * 3) + 1]].pos.x;
-                    vecY = subset.vertices[subset.indices[(i * 3) + 2]].pos.y - subset.vertices[subset.indices[(i * 3) + 1]].pos.y;
-                    vecZ = subset.vertices[subset.indices[(i * 3) + 2]].pos.z - subset.vertices[subset.indices[(i * 3) + 1]].pos.z;
-                    edge2 = XMVectorSet(vecX, vecY, vecZ, 0.0f);    //Create our second edge
-
-                    //Cross multiply the two edge vectors to get the un-normalized face normal
-                    XMStoreFloat3(&unnormalized, XMVector3Cross(edge1, edge2));
-
-                    tempNormal.push_back(unnormalized);
-                }
-
-                //Compute vertex normals (normal Averaging)
-                XMVECTOR normalSum = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
-                int facesUsing = 0;
-                float tX, tY, tZ;    //temp axis variables
-
-                //Go through each vertex
-                for (int i = 0; i < subset.vertices.size(); ++i)
-                {
-                    //Check which triangles use this vertex
-                    for (int j = 0; j < subset.numTriangles; ++j)
-                    {
-                        if (subset.indices[j * 3] == i ||
-                            subset.indices[(j * 3) + 1] == i ||
-                            subset.indices[(j * 3) + 2] == i)
-                        {
-                            tX = XMVectorGetX(normalSum) + tempNormal[j].x;
-                            tY = XMVectorGetY(normalSum) + tempNormal[j].y;
-                            tZ = XMVectorGetZ(normalSum) + tempNormal[j].z;
-
-                            normalSum = XMVectorSet(tX, tY, tZ, 0.0f);    //If a face is using the vertex, add the unormalized face normal to the normalSum
-
-                            facesUsing++;
-                        }
-                    }
-
-                    //Get the actual normal by dividing the normalSum by the number of faces sharing the vertex
-                    normalSum = normalSum / facesUsing;
-
-                    //Normalize the normalSum vector
-                    normalSum = XMVector3Normalize(normalSum);
-
-                    //Store the normal and tangent in our current vertex
-                    subset.vertices[i].normal.x = -XMVectorGetX(normalSum);
-                    subset.vertices[i].normal.y = -XMVectorGetY(normalSum);
-                    subset.vertices[i].normal.z = -XMVectorGetZ(normalSum);
-
-                    //Clear normalSum, facesUsing for next vertex
-                    normalSum = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
-                    facesUsing = 0;
-                }
-                ///                                         
-                //// Create index buffer
-                D3D11_BUFFER_DESC indexBufferDesc;
-                ZeroMemory(&indexBufferDesc, sizeof(indexBufferDesc));
-
-                indexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-                indexBufferDesc.ByteWidth = sizeof(DWORD) * subset.numTriangles * 3;
-                indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-                indexBufferDesc.CPUAccessFlags = 0;
-                indexBufferDesc.MiscFlags = 0;
-
-                D3D11_SUBRESOURCE_DATA iinitData;
-
-                iinitData.pSysMem = &subset.indices[0];
-                d3d11Device->CreateBuffer(&indexBufferDesc, &iinitData, &subset.indexBuff);
-
-                //Create Vertex Buffer
-                D3D11_BUFFER_DESC vertexBufferDesc;
-                ZeroMemory(&vertexBufferDesc, sizeof(vertexBufferDesc));
-
-                vertexBufferDesc.Usage = D3D11_USAGE_DYNAMIC;                            // We will be updating this buffer, so we must set as dynamic
-                vertexBufferDesc.ByteWidth = sizeof(Vertex) * subset.vertices.size();
-                vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-                vertexBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;                // Give CPU power to write to buffer
-                vertexBufferDesc.MiscFlags = 0;
-
-                D3D11_SUBRESOURCE_DATA vertexBufferData;
-
-                ZeroMemory(&vertexBufferData, sizeof(vertexBufferData));
-                vertexBufferData.pSysMem = &subset.vertices[0];
-                hr = d3d11Device->CreateBuffer(&vertexBufferDesc, &vertexBufferData, &subset.vertBuff);
-
-                // Push back the temp subset into the models subset vector
-                MD5Model.subsets.push_back(subset);
-
-                ///                                         
-
-
-
-                int vBufferSize = sizeof(vList);
-
-                // create default heap
-                // default heap is memory on the GPU. Only the GPU has access to this memory
-                // To get data into this heap, we will have to upload the data using
-                // an upload heap
-                m_device->CreateCommittedResource(
-                    &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT), // a default heap
-                    D3D12_HEAP_FLAG_NONE, // no flags
-                    &CD3DX12_RESOURCE_DESC::Buffer(vBufferSize), // resource description for a buffer
-                    D3D12_RESOURCE_STATE_COPY_DEST, // we will start this heap in the copy destination state since we will copy data
-                                                    // from the upload heap to this heap
-                    nullptr, // optimized clear value must be null for this type of resource. used for render targets and depth/stencil buffers
-                    IID_PPV_ARGS(&m_vertexBuffer));
-
-                // we can give resource heaps a name so when we debug with the graphics debugger we know what resource we are looking at
-                m_vertexBuffer->SetName(L"Vertex Buffer Resource Heap");
-
-                // create upload heap
-                // upload heaps are used to upload data to the GPU. CPU can write to it, GPU can read from it
-                // We will upload the vertex buffer using this heap to the default heap
-                ID3D12Resource* vBufferUploadHeap = nullptr;
-                m_device->CreateCommittedResource(
-                    &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), // upload heap
-                    D3D12_HEAP_FLAG_NONE, // no flags
-                    &CD3DX12_RESOURCE_DESC::Buffer(vBufferSize), // resource description for a buffer
-                    D3D12_RESOURCE_STATE_GENERIC_READ, // GPU will read from this buffer and copy its contents to the default heap
-                    nullptr,
-                    IID_PPV_ARGS(&vBufferUploadHeap));
-                vBufferUploadHeap->SetName(L"Vertex Buffer Upload Resource Heap");
-
-                // store vertex buffer in upload heap
-                D3D12_SUBRESOURCE_DATA vertexData = {};
-                vertexData.pData = reinterpret_cast<BYTE*>(vList); // pointer to our vertex array
-                vertexData.RowPitch = vBufferSize; // size of all our triangle vertex data
-                vertexData.SlicePitch = vBufferSize; // also the size of our triangle vertex data
-
-                // we are now creating a command with the command list to copy the data from
-                // the upload heap to the default heap
-                if (!vBufferUploadHeap)
-                {
-                    return false;
-                }
-                else
-                {
-                    UpdateSubresources(m_commandList, m_vertexBuffer, vBufferUploadHeap, 0, 0, 1, &vertexData);
-                }
-
-                // transition the vertex buffer data from copy destination state to vertex buffer state
-                m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_vertexBuffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
-
-                int iBufferSize = sizeof(iList);
-                m_numCubeIndices = sizeof(iList) / sizeof(DWORD);
-                // create default heap to hold index buffer
-                m_device->CreateCommittedResource(
-                    &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT), // a default heap
-                    D3D12_HEAP_FLAG_NONE, // no flags
-                    &CD3DX12_RESOURCE_DESC::Buffer(iBufferSize), // resource description for a buffer
-                    D3D12_RESOURCE_STATE_COPY_DEST, // start in the copy destination state
-                    nullptr, // optimized clear value must be null for this type of resource
-                    IID_PPV_ARGS(&m_indexBuffer));
-
-                // create upload heap to upload index buffer
-                ID3D12Resource* iBufferUploadHeap;
-                m_device->CreateCommittedResource(
-                    &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), // upload heap
-                    D3D12_HEAP_FLAG_NONE, // no flags
-                    &CD3DX12_RESOURCE_DESC::Buffer(vBufferSize), // resource description for a buffer
-                    D3D12_RESOURCE_STATE_GENERIC_READ, // GPU will read from this buffer and copy its contents to the default heap
-                    nullptr,
-                    IID_PPV_ARGS(&iBufferUploadHeap));
-                iBufferUploadHeap->SetName(L"Index Buffer Upload Resource Heap");
-
-                // store vertex buffer in upload heap
-                D3D12_SUBRESOURCE_DATA indexData = {};
-                indexData.pData = reinterpret_cast<BYTE*>(iList); // pointer to our index array
-                indexData.RowPitch = iBufferSize; // size of all our index buffer
-                indexData.SlicePitch = iBufferSize; // also the size of our index buffer
-
-                // we are now creating a command with the command list to copy the data from
-                // the upload heap to the default heap
-                if (!iBufferUploadHeap)
-                {
-                    return false;
-                }
-                else
-                {
-                    UpdateSubresources(m_commandList, m_indexBuffer, iBufferUploadHeap, 0, 0, 1, &indexData);
-                }
-
-                // transition the vertex buffer data from copy destination state to vertex buffer state
-                m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_indexBuffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
-
-                // Now we execute the command list to upload the initial assets (triangle data)
-                m_commandList->Close();
-                ID3D12CommandList* ppCommandLists[] = { m_commandList };
-                m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
-
-                // create a vertex buffer view for the triangle. We get the GPU memory address to the vertex pointer using the GetGPUVirtualAddress() method
-                m_indexBufferView.BufferLocation = m_indexBuffer->GetGPUVirtualAddress();
-                m_indexBufferView.Format = DXGI_FORMAT_R32_UINT; // 32-bit unsigned integer (this is what a dword is, double word, a word is 2 bytes)
-                m_indexBufferView.SizeInBytes = iBufferSize;
-
-                // create a vertex buffer view for the triangle. We get the GPU memory address to the vertex pointer using the GetGPUVirtualAddress() method
-                m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
-                m_vertexBufferView.StrideInBytes = sizeof(Vertex);
-                m_vertexBufferView.SizeInBytes = vBufferSize;
-
-
-                // increment the fence value now, otherwise the buffer might not be uploaded by the time we start drawing
-                Signal();
-
-                WaitForNextFrameBuffers(m_swapChain->GetCurrentBackBufferIndex());
-
-                iBufferUploadHeap->Release();
-                vBufferUploadHeap->Release();
-
-
-
-
-
-
-
-                ///                                         
-            }
-        }
-    }
-    else
-    {
-
-        // create message
-        std::wstring message = L"Could not open: ";
-        message += filename;
-
-        MessageBox(0, message.c_str(),    // display message
-            L"Error", MB_OK);
-
-        return false;
-    }
-
-    return true;
 }
 
 int Direct3D12::LoadImageDataFromFile(BYTE** imageData, D3D12_RESOURCE_DESC& resourceDescription, LPCWSTR filename, int& bytesPerRow)

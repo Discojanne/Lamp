@@ -5,6 +5,8 @@
 #include "directxmath.h"
 #include <wincodec.h> // WICPixelFormatGUID
 
+#include "MD5Model.h"
+
 class DXILShaderCompiler;
 
 #define testtexturename L"Resources/textures/nightmare3.png"
@@ -65,8 +67,12 @@ private:
 	bool InitDepthTesting(int width, int height);
 	void SetViewportSR(int width, int height);
 	void BuildCamMatrices(int width, int height);
-	bool LoadTextures();
+	bool LoadTextures(LPCWSTR texturepath);
 	void Signal();
+	bool LoadMD5Model(std::wstring filename,
+		MD5Model::Model3D& MD5Model,
+		/*std::vector<ID3D12Resource*>& shaderResourceViewArray,*/
+		std::vector<std::wstring>* texFileNameArray);
 
 	ID3D12Device6* m_device;
 	ID3D12CommandQueue* m_commandQueue; // container for command lists
@@ -128,6 +134,9 @@ private:
 
 	///
 
+	std::vector<std::wstring> m_textureNameArray;
+	MD5Model* m_model;
+	
 
 	/// Camera matrices etc
 	

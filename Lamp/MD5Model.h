@@ -84,9 +84,9 @@ public:
 
     bool LoadMD5Model(std::wstring filename,
         Model3D& MD5Model,
-        std::vector<ID3D12Resource*>& shaderResourceViewArray,
-        std::vector<std::wstring> texFileNameArray);
-    
+        /*std::vector<ID3D12Resource*>& shaderResourceViewArray,*/
+        std::vector<std::wstring>* texFileNameArray);
+    Model3D m_model;
 private:
 
     void CleanUp();

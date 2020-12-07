@@ -30,6 +30,9 @@
     <ClCompile Include="CompilerClass.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="MD5Model.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="d3dx12.h">
@@ -42,6 +45,9 @@
       <Filter>Header Files\Direct3D12</Filter>
     </ClInclude>
     <ClInclude Include="CompilerClass.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MD5Model.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

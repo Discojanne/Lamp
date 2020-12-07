@@ -9,7 +9,7 @@ MD5Model::~MD5Model()
 {
 }
 
-bool MD5Model::LoadMD5Model(std::wstring filename, Model3D& MD5Model, std::vector<ID3D12Resource*>& shaderResourceViewArray, std::vector<std::wstring> texFileNameArray)
+bool MD5Model::LoadMD5Model(std::wstring filename, Model3D& MD5Model, std::vector<std::wstring>* texFileNameArray)
 {
 
     std::wifstream fileIn(filename.c_str());        // Open file
@@ -147,9 +147,9 @@ bool MD5Model::LoadMD5Model(std::wstring filename, Model3D& MD5Model, std::vecto
 
                         //check if this texture has already been loaded
                         bool alreadyLoaded = false;
-                        for (int i = 0; i < texFileNameArray.size(); ++i)
+                        for (int i = 0; i < (*texFileNameArray).size(); ++i)
                         {
-                            if (fileNamePath == texFileNameArray[i])
+                            if (fileNamePath == (*texFileNameArray)[i])
                             {
                                 alreadyLoaded = true;
                                 subset.texArrayIndex = i;
@@ -159,21 +159,23 @@ bool MD5Model::LoadMD5Model(std::wstring filename, Model3D& MD5Model, std::vecto
                         //if the texture is not already loaded, load it now
                         if (!alreadyLoaded)
                         {
-                            ID3D12Resource* tempMeshSRV;
-                            hr = D3DX11CreateShaderResourceViewFromFile(d3d11Device, fileNamePath.c_str(),
-                                NULL, NULL, &tempMeshSRV, NULL);
-                            if (SUCCEEDED(hr))
-                            {
-                                texFileNameArray.push_back(fileNamePath.c_str());
-                                subset.texArrayIndex = shaderResourceViewArray.size();
-                                shaderResourceViewArray.push_back(tempMeshSRV);
-                            }
-                            else
-                            {
-                                MessageBox(0, fileNamePath.c_str(),        //display message
-                                    L"Could Not Open:", MB_OK);
-                                return false;
-                            }
+                            (*texFileNameArray).push_back(fileNamePath.c_str());
+
+                            //ID3D12Resource* tempMeshSRV;
+                            //hr = D3DX11CreateShaderResourceViewFromFile(d3d11Device, fileNamePath.c_str(),
+                            //    NULL, NULL, &tempMeshSRV, NULL);
+                            //if (SUCCEEDED(hr))
+                            //{
+                            //    texFileNameArray.push_back(fileNamePath.c_str());
+                            //    subset.texArrayIndex = shaderResourceViewArray.size();
+                            //    shaderResourceViewArray.push_back(tempMeshSRV);
+                            //}
+                            //else
+                            //{
+                            //    MessageBox(0, fileNamePath.c_str(),        //display message
+                            //        L"Could Not Open:", MB_OK);
+                            //    return false;
+                            //}
                         }
 
                         std::getline(fileIn, checkString);                // Skip rest of this line
@@ -389,7 +391,7 @@ bool MD5Model::LoadMD5Model(std::wstring filename, Model3D& MD5Model, std::vecto
                     facesUsing = 0;
                 }
 
-                // Create index buffer
+                //// Create index buffer
                 D3D11_BUFFER_DESC indexBufferDesc;
                 ZeroMemory(&indexBufferDesc, sizeof(indexBufferDesc));
 

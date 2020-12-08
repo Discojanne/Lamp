@@ -112,12 +112,16 @@ bool Direct3D12::InitD3D(HWND hwnd, int width, int height)
 
 void Direct3D12::Update(double dt)
 {
+
+    m_model->UpdateMD5Model(dt, 0);
+
+
    // update app logic, such as moving the camera or figuring out what objects are in view
 
    // create rotation matrices
-    DirectX::XMMATRIX rotXMat = DirectX::XMMatrixRotationX(0.0005f * dt);
-    DirectX::XMMATRIX rotYMat = DirectX::XMMatrixRotationY(0.001f * dt);
-    DirectX::XMMATRIX rotZMat = DirectX::XMMatrixRotationZ(0.0015f * dt);
+    DirectX::XMMATRIX rotXMat = DirectX::XMMatrixRotationX(0.5f * dt);
+    DirectX::XMMATRIX rotYMat = DirectX::XMMatrixRotationY(0.1f * dt);
+    DirectX::XMMATRIX rotZMat = DirectX::XMMatrixRotationZ(0.15f * dt);
 
     // add rotation to cube1's rotation matrix and store it
     DirectX::XMMATRIX rotMat = DirectX::XMLoadFloat4x4(&m_cube1RotMat) * rotXMat * rotYMat * rotZMat;
@@ -149,9 +153,9 @@ void Direct3D12::Update(double dt)
 
     // now do cube2's world matrix
     // create rotation matrices for cube2
-    rotXMat = DirectX::XMMatrixRotationX(0.0015f * dt);
-    rotYMat = DirectX::XMMatrixRotationY(0.001f * dt);
-    rotZMat = DirectX::XMMatrixRotationZ(0.0005f * dt);
+    rotXMat = DirectX::XMMatrixRotationX(0.15f * dt);
+    rotYMat = DirectX::XMMatrixRotationY(0.1f * dt);
+    rotZMat = DirectX::XMMatrixRotationZ(0.5f * dt);
 
     // add rotation to cube2's rotation matrix and store it
     rotMat = rotZMat * (DirectX::XMLoadFloat4x4(&m_cube2RotMat) * (rotXMat * rotYMat));
@@ -190,7 +194,7 @@ bool Direct3D12::UpdatePipeline()
     HRESULT hr;
 
     // We have to wait for the gpu to finish with the command allocator before we reset it
-    WaitForNextFrameBuffers(m_swapChain->GetCurrentBackBufferIndex());
+    WaitForNextFrameBuffers(1 - m_swapChain->GetCurrentBackBufferIndex());
 
     // we can only reset an allocator once the gpu is done with it
     // resetting an allocator frees the memory that the command list was stored in
@@ -954,6 +958,8 @@ bool Direct3D12::LoadModels()
     if (!m_model->LoadMD5Model(m_device, m_commandList, L"boy.md5mesh", &m_textureNameArray))
         return false;
 
+    if (!m_model->LoadMD5Anim(L"boy.md5anim"))
+        return false;
 
 
 
@@ -967,7 +973,7 @@ bool Direct3D12::LoadModels()
 
     WaitForNextFrameBuffers(m_swapChain->GetCurrentBackBufferIndex());
 
-    m_model->ReleaseUploadHeaps();
+    //m_model->ReleaseUploadHeaps();
 
     return true;
 }

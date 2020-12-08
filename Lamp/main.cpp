@@ -30,10 +30,10 @@ struct Timer
 		QueryPerformanceFrequency(&li);
 
 		// seconds
-		//timerFrequency = double(li.QuadPart);
+		timerFrequency = double(li.QuadPart);
 
 		// milliseconds
-		timerFrequency = double(li.QuadPart) / 1000.0;
+		//timerFrequency = double(li.QuadPart) / 1000.0;
 
 		// microseconds
 		//timerFrequency = double(li.QuadPart) / 1000000.0;
@@ -49,7 +49,7 @@ struct Timer
 		QueryPerformanceCounter(&li);
 		frameDelta = double(li.QuadPart - lastFrameTime) / timerFrequency;
 		if (frameDelta > 0)
-			fps = 1000 / frameDelta;
+			fps = 1 / frameDelta;
 		lastFrameTime = li.QuadPart;
 		return frameDelta;
 	}
@@ -181,7 +181,7 @@ void gameloop() {
 
 			static float a = 0.0f;
 			a += dt;
-			if (a > 1000.0f)
+			if (a > 1.0f)
 			{
 				SetWindowTextA(hwnd, std::to_string(timer.fps).c_str());
 				a = 0.0f;

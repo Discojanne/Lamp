@@ -48,6 +48,7 @@ public:
         int jointID;
         float bias;
         XMFLOAT3 pos;
+        XMFLOAT3 normal;
     };
 
     struct ModelSubset
@@ -72,6 +73,49 @@ public:
         ID3D12Resource* m_iBufferUploadHeap;
     };
 
+    // Anim
+
+    struct BoundingBox
+    {
+        XMFLOAT3 min;
+        XMFLOAT3 max;
+    };
+
+    struct FrameData
+    {
+        int frameID;
+        std::vector<float> frameData;
+    };
+
+    struct AnimJointInfo
+    {
+        std::wstring name;
+        int parentID;
+
+        int flags;
+        int startIndex;
+    };
+
+    struct ModelAnimation
+    {
+        int numFrames;
+        int numJoints;
+        int frameRate;
+        int numAnimatedComponents;
+
+        float frameTime;
+        float totalAnimTime;
+        float currAnimTime;
+
+        std::vector<AnimJointInfo> jointInfo;
+        std::vector<BoundingBox> frameBounds;
+        std::vector<Joint>    baseFrameJoints;
+        std::vector<FrameData>    frameData;
+        std::vector<std::vector<Joint>> frameSkeleton;
+    };
+
+    // Model
+
     struct Model3D
     {
         int numSubsets;
@@ -79,6 +123,8 @@ public:
 
         std::vector<Joint> joints;
         std::vector<ModelSubset> subsets;
+
+        std::vector<ModelAnimation> animations;
     };
 
     MD5Model();
@@ -87,14 +133,17 @@ public:
     bool LoadMD5Model(ID3D12Device6* device, ID3D12GraphicsCommandList6* commandList, std::wstring filename,
         std::vector<std::wstring>* texFileNameArray);
     
+    bool LoadMD5Anim(std::wstring filename);
+
+    void UpdateMD5Model(float dt, int animation);
+
     void ReleaseUploadHeaps();
     void CleanUp();
     std::vector<ModelSubset>& GetModelSubsets();
 
 private:
 
-   
     bool CreateVertexBuffers(ID3D12Device6* device, ID3D12GraphicsCommandList6* commandList, ModelSubset& subset);
-
+    void UpdateVertexBuffer();
     Model3D m_model;
 };

@@ -19,7 +19,7 @@ public:
 	
 	bool InitD3D(HWND hwnd, int width, int height); // initializes direct3d 12
 
-	void Update(); // update the game logic
+	void Update(double dt); // update the game logic
 	bool UpdatePipeline(); // update the direct3d pipeline (update command lists)
 	void Render(); // execute the command list
 

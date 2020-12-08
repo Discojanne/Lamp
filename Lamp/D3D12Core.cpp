@@ -110,14 +110,14 @@ bool Direct3D12::InitD3D(HWND hwnd, int width, int height)
 	return true;
 }
 
-void Direct3D12::Update()
+void Direct3D12::Update(double dt)
 {
    // update app logic, such as moving the camera or figuring out what objects are in view
 
    // create rotation matrices
-    DirectX::XMMATRIX rotXMat = DirectX::XMMatrixRotationX(0.0001f);
-    DirectX::XMMATRIX rotYMat = DirectX::XMMatrixRotationY(0.0002f);
-    DirectX::XMMATRIX rotZMat = DirectX::XMMatrixRotationZ(0.0003f);
+    DirectX::XMMATRIX rotXMat = DirectX::XMMatrixRotationX(0.0005f * dt);
+    DirectX::XMMATRIX rotYMat = DirectX::XMMatrixRotationY(0.001f * dt);
+    DirectX::XMMATRIX rotZMat = DirectX::XMMatrixRotationZ(0.0015f * dt);
 
     // add rotation to cube1's rotation matrix and store it
     DirectX::XMMATRIX rotMat = DirectX::XMLoadFloat4x4(&m_cube1RotMat) * rotXMat * rotYMat * rotZMat;
@@ -149,9 +149,9 @@ void Direct3D12::Update()
 
     // now do cube2's world matrix
     // create rotation matrices for cube2
-    rotXMat = DirectX::XMMatrixRotationX(0.0003f);
-    rotYMat = DirectX::XMMatrixRotationY(0.0002f);
-    rotZMat = DirectX::XMMatrixRotationZ(0.0001f);
+    rotXMat = DirectX::XMMatrixRotationX(0.0015f * dt);
+    rotYMat = DirectX::XMMatrixRotationY(0.001f * dt);
+    rotZMat = DirectX::XMMatrixRotationZ(0.0005f * dt);
 
     // add rotation to cube2's rotation matrix and store it
     rotMat = rotZMat * (DirectX::XMLoadFloat4x4(&m_cube2RotMat) * (rotXMat * rotYMat));

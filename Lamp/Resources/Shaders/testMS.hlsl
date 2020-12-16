@@ -10,8 +10,9 @@ cbuffer ConstantBufferTest : register(b0)
 
 struct MSvertex
 {
-    float4 pos : SV_POSITION;
+    float4 pos: SV_POSITION;
     float2 texCoord: TEXCOORD;
+    float3 normal: NORMAL;
 };
 
 float4 TransformPos(float4 v) 
@@ -109,6 +110,7 @@ void MSmain(
         float4 pos = cubeVertices[groupThreadId];
         outVerts[groupThreadId].pos = TransformPos(pos);
         outVerts[groupThreadId].texCoord = cubeCoords[groupThreadId];
+        outVerts[groupThreadId].normal = float3(1.0f, 0.0f, 0.0f);
     }
 
     outIndices[groupThreadId] = cubeIndices[groupThreadId];

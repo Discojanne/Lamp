@@ -13,6 +13,7 @@ struct VS_OUTPUT
 {
     float4 pos: SV_POSITION;
     float2 texCoord: TEXCOORD;
+    float3 normal: NORMAL;
 };
 
 cbuffer ConstantBufferTest : register(b0)
@@ -24,6 +25,7 @@ VS_OUTPUT VSmain(VS_INPUT input, uint id : SV_InstanceID)
 {
     VS_OUTPUT output;
     output.pos = mul(float4(input.pos, 1.0f), wvpMat);
-    output.texCoord = (input.texCoord + 0.5f) / 2.0f;
+    output.texCoord = input.texCoord;
+    output.normal = input.normal;// mul(float4(input.normal, 0.0f), wvpMat);
     return output;
 }

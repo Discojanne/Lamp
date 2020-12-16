@@ -119,9 +119,9 @@ void Direct3D12::Update(double dt)
    // update app logic, such as moving the camera or figuring out what objects are in view
 
    // create rotation matrices
-    DirectX::XMMATRIX rotXMat = DirectX::XMMatrixRotationX(0.5f * dt);
-    DirectX::XMMATRIX rotYMat = DirectX::XMMatrixRotationY(0.1f * dt);
-    DirectX::XMMATRIX rotZMat = DirectX::XMMatrixRotationZ(0.15f * dt);
+    DirectX::XMMATRIX rotXMat = DirectX::XMMatrixRotationX(0.0f * dt);
+    DirectX::XMMATRIX rotYMat = DirectX::XMMatrixRotationY(0.5f * dt);
+    DirectX::XMMATRIX rotZMat = DirectX::XMMatrixRotationZ(0.0f * dt);
 
     // add rotation to cube1's rotation matrix and store it
     DirectX::XMMATRIX rotMat = DirectX::XMLoadFloat4x4(&m_cube1RotMat) * rotXMat * rotYMat * rotZMat;
@@ -955,10 +955,10 @@ bool Direct3D12::LoadModels()
 {
 
     m_model = new MD5Model();
-    if (!m_model->LoadMD5Model(m_device, m_commandList, L"boy.md5mesh", &m_textureNameArray))
+    if (!m_model->LoadMD5Model(m_device, m_commandList, L"Resources/models/boblampclean.md5mesh", &m_textureNameArray))
         return false;
 
-    if (!m_model->LoadMD5Anim(L"boy.md5anim"))
+    if (!m_model->LoadMD5Anim(L"Resources/models/boblampclean.md5anim"))
         return false;
 
 
@@ -1076,8 +1076,8 @@ void Direct3D12::BuildCamMatrices(int width, int height)
     
 
     // set starting camera state
-    m_cameraPosition = DirectX::XMFLOAT4(0.0f, 2.0f, -6.0f, 0.0f);
-    m_cameraTarget = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+    m_cameraPosition = DirectX::XMFLOAT4(2.0f, 2.0f, -2.0f, 0.0f);
+    m_cameraTarget = DirectX::XMFLOAT4(0.0f, 0.5f, 0.0f, 0.0f);
     m_cameraUp = DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 0.0f);
 
     // build view matrix

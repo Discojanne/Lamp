@@ -6,6 +6,7 @@
 #include <wincodec.h> // WICPixelFormatGUID
 
 #include "MD5Model.h"
+#include "mesh.h"
 
 class DXILShaderCompiler;
 
@@ -94,6 +95,8 @@ private:
 	ID3D12DescriptorHeap* m_dsDescriptorHeap; // This is a heap for our depth/stencil buffer descriptor
 
 	DXILShaderCompiler* m_shaderCompiler;
+
+
 
 	/// Texture stuff ¤ 
 

@@ -3,17 +3,18 @@
 
 #include "ioSMD.h"
 
-#include <QDebug>
+
+//#include <QDebug>
 
 // used to export/import skeletons, rigged meshes, animations...
 
-Mat4 euler2matrix(float* eul){
-    Mat4 m;
-    m.FromEulerAngles(eul[0], eul[1], eul[2]);
-
+XMMATRIX euler2matrix(float* eul){
+    XMMATRIX m;
+    //m.FromEulerAngles(eul[0], eul[1], eul[2]);
+    FromEulerAngles(m, eul[0], eul[1], eul[2]);
     // notation clash (sigh): swap Y-Z axes
     float f[16]={1,0,0,0, 0,0,1,0, 0,1,0,0, 0,0,0,1};
-    Mat4 axesSwapper(f);
+    XMMATRIX axesSwapper(f);
     m = axesSwapper * m * axesSwapper;
 
     return m;
@@ -25,7 +26,7 @@ int versionErr;
 
 static bool expect(FILE* f, const char* what){
     static char str[255];
-    fscanf(f, "%s", str);
+    fscanf_s(f, "%s", str);
     if (strcmp(str,what)){
         expectedErr = what;
         foundErr = str;
@@ -37,7 +38,7 @@ static bool expect(FILE* f, const char* what){
 
 static bool expectLine(FILE* f, const char* what){
     static char str[255];
-    fscanf(f, "%s\n", str);
+    fscanf_s(f, "%s\n", str);
     if (strcmp(str,what)){
         expectedErr = what;
         foundErr = str;
@@ -75,11 +76,11 @@ bool ioSMD::importTriangles(FILE*f, Mesh &m ){
             fscanln(f, line);
             int tmp[4];
             int nread =
-                 sscanf(line,"%d %f %f %f %f %f %f %f %f %d %d %f %d %f %d %f %d %f",
+                 sscanf_s(line,"%d %f %f %f %f %f %f %f %f %d %d %f %d %f %d %f %d %f",
                     &bi,
-                    &(v.pos[0]),&(v.pos[2]),&(v.pos[1]),
-                    &(v.norm[0]),&(v.norm[2]),&(v.norm[1]),
-                    &(v.uv[0]),&(v.uv[1]),
+                    &(v.pos.x),&(v.pos.z),&(v.pos.y),
+                    &(v.norm.x),&(v.norm.z),&(v.norm.y),
+                    &(v.uv.x),&(v.uv.y),
                     &nr,
                     tmp+0, &(v.boneWeight[0]),
                     tmp+1, &(v.boneWeight[1]),
@@ -105,7 +106,7 @@ bool ioSMD::importTriangles(FILE*f, Mesh &m ){
             }
 
             /* convention clash: flip vertical texture coordinate (sigh) */
-            v.uv[1]=1-v.uv[1];
+            v.uv.y=1-v.uv.y;
 
             m.vert.push_back(v);
 
@@ -122,7 +123,7 @@ bool ioSMD::importNodes(FILE*f,Skeleton &s ){
 
     int v=-1;
     if (!expect(f,"version")) return false;
-    fscanf(f, "%d\n",&v);
+    fscanf_s(f, "%d\n",&v);
     if (v!=1) { versionErr = v; lastErr=3; return false;}
 
     if (!expectLine(f,"nodes")) return false;
@@ -133,7 +134,7 @@ bool ioSMD::importNodes(FILE*f,Skeleton &s ){
         char st[4096];
         fscanln(f,line);
 
-        int res = sscanf(line,"%d \"%s %d",&a, st, &b);
+        int res = sscanf_s(line,"%d \"%s %d",&a, st, &b);
         if (res<3) {
             line[3]=0; // clear str
             if (strcmp(line,"end")!=0) {
@@ -165,16 +166,16 @@ bool ioSMD::importPose(FILE* f, Pose &pose){
     if (!expect(f,"time")) return false;
 
     int time; // to be read but be to be ignored
-    fscanf(f,"%d",&time);
+    fscanf_s(f,"%d",&time);
 
     while (1) {
         int i;
-        int res = fscanf(f,"%d",&i);
+        int res = fscanf_s(f,"%d",&i);
         if (res==0) break; // hopefully it is an "end"
         //assert(i<(int)s.bone.size());
         float r[3];
-        Vec3 t;
-        fscanf(f,"%f %f %f %f %f %f", &(t[0]),&(t[2]),&(t[1]), r+0, r+1, r+2);
+        XMFLOAT3 t;
+        fscanf_s(f,"%f %f %f %f %f %f", &(t.x),&(t.z),&(t.y), r+0, r+1, r+2);
         //if (i>=(int)s.bone.size()) continue; // ignore rotation for non-existing bones
         if (i>=(int)pose.matr.size()) pose.matr.resize(i+1);
         pose.setRotation( i, euler2matrix(r) );
@@ -233,8 +234,8 @@ const char* ioSMD::lastErrorString(){
     switch(lastErr) {
     case 1: return "File not found"; break;
     case 2: return "Cannot open file for writing"; break;
-    case 3: sprintf(res,"Version %d not supported",versionErr); return res; break;
-    case 4: sprintf(res,"Expected '%s' found '%s'",expectedErr, foundErr); return res; break;
+    case 3: sprintf_s(res,"Version %d not supported",versionErr); return res; break;
+    case 4: sprintf_s(res,"Expected '%s' found '%s'",expectedErr, foundErr); return res; break;
     case 0: return "(no error)"; break;
     default: return "undocumented error"; break;
     }

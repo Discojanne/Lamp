@@ -78,8 +78,7 @@ bool Direct3D12::InitD3D(HWND hwnd, int width, int height)
     if (!InitRootSignature())
         return false;
 
-    if (!InitConstantBuffer())
-        return false;
+    
 
     if (!InitShaderLayoutGPS())
         return false;
@@ -90,8 +89,9 @@ bool Direct3D12::InitD3D(HWND hwnd, int width, int height)
     //m_textureNameArray = { L"face.jpg", L"arms.jpg", L"shirt.jpg", L"pants.jpg", L"shoes.jpg", };
     //LoadMD5Model(L"boy.md5mesh", m_model->m_model, &m_textureNameArray);
 
-    //if (!InitVertexIndexBuffer())
-        //return false;
+    if (!InitConstantBuffer())
+        return false;
+   
 
     if (!InitDepthTesting(width, height))
         return false;
@@ -327,6 +327,8 @@ void Direct3D12::Cleanup()
 {
     HRESULT hr;
     Signal();
+
+    delete m_scene;
 
     // wait for the gpu to finish all frames
     for (int i = 0; i < frameBufferCount; ++i)
@@ -961,7 +963,14 @@ bool Direct3D12::LoadModels()
     if (!m_model->LoadMD5Anim(L"Resources/models/boblampclean.md5anim"))
         return false;
 
+    m_scene = new Scene;
+    if (!m_scene->LoadMesh("bride_dress"))
+        return false;
 
+    if (!m_scene->LoadAnimation("man_walk"))
+        return false;
+
+    //m_scene->CreateVertexBuffers(m_device, m_commandList);
 
     // Now we execute the command list to upload the initial assets (triangle data)
     m_commandList->Close();

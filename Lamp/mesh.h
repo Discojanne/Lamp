@@ -32,6 +32,7 @@
 #include <vector>
 #include "ExtraMath.h"
 
+#include "d3dx12.h"
 
 class Pose;
 class PoseDQS;
@@ -94,6 +95,17 @@ public:
     Mesh();
     std::vector<Vert> vert;
     std::vector<Face> face;
+
+    ID3D12Resource* vertexBuffer; // a default buffer in GPU memory that we will load vertex data for our triangle into
+    D3D12_VERTEX_BUFFER_VIEW vertexBufferView; // a structure containing a pointer to the vertex data in gpu memory
+                                               // the total size of the buffer, and the size of each element (vertex)
+
+    ID3D12Resource* indexBuffer; // a default buffer in GPU memory that we will load index data for our triangle into
+    D3D12_INDEX_BUFFER_VIEW indexBufferView; // a structure holding information about the index buffer
+
+    //remove these probably
+    //ID3D12Resource* m_vBufferUploadHeap;
+    //ID3D12Resource* m_iBufferUploadHeap;
 
     void setUniformRig(int nbone);
 

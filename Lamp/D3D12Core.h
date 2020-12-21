@@ -6,7 +6,8 @@
 #include <wincodec.h> // WICPixelFormatGUID
 
 #include "MD5Model.h"
-#include "mesh.h"
+#include "Scene.h"
+
 
 class DXILShaderCompiler;
 
@@ -80,6 +81,8 @@ private:
 	int m_rtvDescriptorSize; // size of the rtv descriptor on the device (all front and back buffers will be the same size)
 
 	/// to draw geometry 
+
+	Scene* m_scene;
 
 	ID3D12RootSignature* m_rootSignature; // root signature defines data shaders will access
 	//ID3D12RootSignature* m_rootSignatureMS; // root signature defines data shaders will access

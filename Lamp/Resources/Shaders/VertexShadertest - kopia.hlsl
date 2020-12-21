@@ -13,12 +13,18 @@ struct VS_INPUT
 	float2 uv : TEXCOORD;
 	float3 tang : TANGENT;
 	float3 bitang : BITANGENT;
+    //unsure of the semantic 
+	float4 boneWeight : COLOR0;
+	int4 boneIndex : color1;
 };
 
+//uniform float2x4 boneDualQuaternion[32];
 
-attribute float4 boneWeight;
-attribute int4 boneIndex;
-uniform float2x4 boneDualQuaternion[32];
+cbuffer ConstantBufferTest : register(b0)
+{
+	//float4x4 wvpMat;
+	float2x4 boneDualQuaternion[32];
+};
 
 //varying float3 v_color;
 //varying float3 v_norm;

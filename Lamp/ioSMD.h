@@ -23,7 +23,7 @@
  * above Scientific Article and include the same condition.   *
  *                                                            *
  **************************************************************/
-
+#include <stdio.h>
 #ifndef IOSMD_H
 #define IOSMD_H
 
@@ -39,7 +39,7 @@ class ioSMD
 public:
 
   // a SMD file can contain both. The one which is not contained will be "isEmpty"
-  static bool import(FILE* file, Mesh &m , Animation &a);
+	static bool import(FILE* file, Mesh& m, Animation& a);
 
   static const char* lastErrorString();
 

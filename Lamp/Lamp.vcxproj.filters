@@ -93,12 +93,4 @@
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
-  <ItemGroup>
-    <FxCompile Include="Resources\Shaders\PixelShadertest.hlsl">
-      <Filter>Resource Files</Filter>
-    </FxCompile>
-    <FxCompile Include="Resources\Shaders\VertexShadertest.hlsl">
-      <Filter>Resource Files</Filter>
-    </FxCompile>
-  </ItemGroup>
 </Project>

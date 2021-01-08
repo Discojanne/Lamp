@@ -64,8 +64,8 @@ void Pose::setRotation(int bonei, XMMATRIX r){
     //matr[bonei].SetColumn(0, r.GetRow4(0));
     for (unsigned int i = 0; i < 3; i++)
     {
-        SetColMatrix(matr[bonei], i, XMFLOAT3(matr[bonei].r[i].m128_f32[0], 
-            matr[bonei].r[i].m128_f32[1], matr[bonei].r[i].m128_f32[2]));
+        SetColMatrix(matr[bonei], i, XMFLOAT3(r.r[i].m128_f32[0], 
+            r.r[i].m128_f32[1], r.r[i].m128_f32[2]));
     }
     
     //matr[bonei].SetColumn(1, r.GetRow4(1));

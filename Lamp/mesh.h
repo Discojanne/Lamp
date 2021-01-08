@@ -52,16 +52,11 @@ public:
     XMFLOAT3 tang; // tangent dir
     XMFLOAT3 bitang; // bi-tangent dir
 
-#ifdef USE_GLSL_120
-    typedef float indexType;
-#else
-    typedef char indexType;
-#endif
-
-    indexType boneIndex[MAX_BONES];
+    int boneIndex[MAX_BONES];
 
     float boneWeight[MAX_BONES];
 
+    // send in as float3 or maxbones - 1
     float deformFactorsTang[MAX_BONES]; /* see paper */
     float deformFactorsBtan[MAX_BONES]; /* see paper */
 
@@ -75,13 +70,13 @@ public:
     void maybeSwapBoneSlots(int i, int j);
 
     /* UN-USED: only for testing numerical in-stability of naive solution */
-    XMFLOAT3 weightGradient[MAX_BONES];
+    //XMFLOAT3 weightGradient[MAX_BONES];
 
 };
 
 class Face{
 public:
-    int index[3];
+    unsigned int index[3];
 
     Face() {}
     Face(int i, int j, int k) {index[0]=i; index[1]=j; index[2]=k; }
@@ -104,8 +99,8 @@ public:
     D3D12_INDEX_BUFFER_VIEW indexBufferView; // a structure holding information about the index buffer
 
     //remove these probably
-    //ID3D12Resource* m_vBufferUploadHeap;
-    //ID3D12Resource* m_iBufferUploadHeap;
+    ID3D12Resource* vBufferUploadHeap;
+    ID3D12Resource* iBufferUploadHeap;
 
     void setUniformRig(int nbone);
 

@@ -10,10 +10,16 @@ cbuffer ConstantBufferTest : register(b0)
 
 struct MSvertex
 {
-    float4 pos: SV_POSITION;
-    float2 texCoord: TEXCOORD;
-    float3 normal: NORMAL;
+	float4 pos : SV_POSITION;
+	float2 texCoord : TEXCOORD;
+	float3 normal : NORMAL;
+    //new stuff
+	float3 color : COLOR;
+	float3 lightDir : LIGHTDIR;
+	float v_norm_err : ERR;
 };
+
+
 
 float4 TransformPos(float4 v) 
 {
@@ -95,10 +101,8 @@ static uint3 cubeIndices[] =
 //[RootSignature(ROOT_SIG)]
 [OutputTopology("triangle")]
 [NumThreads(24, 1, 1)]
-void MSmain(
-    in uint groupThreadId : SV_GroupThreadID,
-    out vertices MSvertex outVerts[24],
-    out indices uint3 outIndices[12])
+void MSmain(in uint groupThreadId : SV_GroupThreadID,
+    out vertices MSvertex outVerts[24], out indices uint3 outIndices[12])
 {
     const uint numVertices = 24;
     const uint numPrimitives = 12;
@@ -109,9 +113,10 @@ void MSmain(
     {
         float4 pos = cubeVertices[groupThreadId];
         outVerts[groupThreadId].pos = TransformPos(pos);
-        outVerts[groupThreadId].texCoord = cubeCoords[groupThreadId];
-        outVerts[groupThreadId].normal = float3(1.0f, 0.0f, 0.0f);
-    }
+		outVerts[groupThreadId].texCoord = cubeCoords[groupThreadId];
+		outVerts[groupThreadId].normal = float3(1.0f, 0.0f, 0.0f);
+		outVerts[groupThreadId].lightDir = float3(1.0f, 0.0f, 0.0f);
+	}
 
     outIndices[groupThreadId] = cubeIndices[groupThreadId];
 }

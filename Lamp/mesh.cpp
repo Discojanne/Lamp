@@ -34,7 +34,8 @@
 #include "animation.h"
 #include "animation_dqs.h"
 
-//#include "QDebug"
+
+
 
 
 const int MAX_TOTAL_BONES = 35;
@@ -53,7 +54,7 @@ void Mesh::computeDeformFactors(){
             vert[vi].deformFactorsBtan[k] = 0;
 
             //vert[vi].weightGradient[k].SetZero();
-            vert[vi].weightGradient[k] = XMFLOAT3(0, 0, 0);
+            //vert[vi].weightGradient[k] = XMFLOAT3(0, 0, 0);
         }
     }
 
@@ -128,7 +129,7 @@ void Mesh::computeDeformFactors(){
                         
                         //vert[ pi[z] ].weightGradient[k] += faceWeightGradient * wedgeAngle;
                         //vert[pi[z]].weightGradient[k] += MultiplyFloat3Float(faceWeightGradient, wedgeAngle);
-                        AddToFloat3(vert[pi[z]].weightGradient[k], MultiplyFloat3Float(faceWeightGradient, wedgeAngle));
+                        //AddToFloat3(vert[pi[z]].weightGradient[k], MultiplyFloat3Float(faceWeightGradient, wedgeAngle));
                         summator[ pi[z] ].m128_f32[k] += wedgeAngle;
                         
                     }
@@ -144,7 +145,7 @@ void Mesh::computeDeformFactors(){
                 vert[vi].deformFactorsTang[k] /= summator[ vi ].m128_f32[k];
                 vert[vi].deformFactorsBtan[k] /= summator[ vi ].m128_f32[k];
                 //vert[vi].weightGradient[k] /= summator[ vi ].m128_f32[k];
-                divFloat3float(vert[vi].weightGradient[k], summator[vi].m128_f32[k]);
+                //divFloat3float(vert[vi].weightGradient[k], summator[vi].m128_f32[k]);
             }
         }
     }
@@ -386,7 +387,7 @@ void Mesh::removeUnreferencedVertices(){
 void Mesh::unifyVertices(){
 
     std::map< Vert, int > v2i;
-    for (unsigned int i=0; i<vert.size(); i++) {
+    for (unsigned int i = 0; i < vert.size(); i++) {
         v2i[ vert[i] ] = i;
     }
     for (unsigned int i=0; i<face.size(); i++) {

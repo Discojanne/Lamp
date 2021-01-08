@@ -21,6 +21,10 @@ public:
     bool LoadAnimation(std::string filename);
     bool CreateVertexBuffers(ID3D12Device6* device, ID3D12GraphicsCommandList6* commandList);
 
+    void ReleaseUploadHeaps();
+
+    AnimationDQS currentAniDqs;
+    Mesh currentMesh;
 private:
 
     std::string meshpath = "Resources/models/";
@@ -28,11 +32,11 @@ private:
     std::string animationpath = "Resources/animations/";
 
     /* data being shown */
-    Mesh currentMesh;
+    
     //QString currentBumpmapFilename;
     //QString currentSpecmapFilename;
     Animation currentAni;
-    AnimationDQS currentAniDqs;
+    
     std::string currentNameMesh, currentNameAni;
     int currentFrame;
     std::string currentBumpmapFilename;

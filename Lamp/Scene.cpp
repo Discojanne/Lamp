@@ -8,6 +8,7 @@ Scene::Scene()
 
 Scene::~Scene()
 {
+    
 }
 
 bool Scene::LoadMesh(std::string filename)
@@ -99,10 +100,6 @@ bool Scene::CreateVertexBuffers(ID3D12Device6* device, ID3D12GraphicsCommandList
     int nrOfVertices = currentMesh.vert.size();
     int vBufferSize = sizeof(Vert) * nrOfVertices;
 
-    // create default heap
-    // default heap is memory on the GPU. Only the GPU has access to this memory
-    // To get data into this heap, we will have to upload the data using
-    // an upload heap
     device->CreateCommittedResource(
         &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT), // a default heap
         D3D12_HEAP_FLAG_NONE, // no flags
@@ -112,22 +109,24 @@ bool Scene::CreateVertexBuffers(ID3D12Device6* device, ID3D12GraphicsCommandList
         nullptr, // optimized clear value must be null for this type of resource. used for render targets and depth/stencil buffers
         IID_PPV_ARGS(&currentMesh.vertexBuffer));
 
-    // we can give resource heaps a name so when we debug with the graphics debugger we know what resource we are looking at
-    currentMesh.vertexBuffer->SetName(L"Vertex Buffer Resource Heap2");
+    currentMesh.vertexBuffer->SetName(L"Vertex Default Heap");
 
-    // create upload heap
-    // upload heaps are used to upload data to the GPU. CPU can write to it, GPU can read from it
-    // We will upload the vertex buffer using this heap to the default heap
-    ID3D12Resource* vBufferUploadHeap;
-    vBufferUploadHeap = nullptr;
+
+    currentMesh.vBufferUploadHeap = nullptr;
     device->CreateCommittedResource(
         &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), // upload heap
         D3D12_HEAP_FLAG_NONE, // no flags
         &CD3DX12_RESOURCE_DESC::Buffer(vBufferSize), // resource description for a buffer
         D3D12_RESOURCE_STATE_GENERIC_READ, // GPU will read from this buffer and copy its contents to the default heap
         nullptr,
-        IID_PPV_ARGS(&vBufferUploadHeap));
-    vBufferUploadHeap->SetName(L"Vertex Buffer Upload Resource Heap2");
+        IID_PPV_ARGS(&currentMesh.vBufferUploadHeap));
+    currentMesh.vBufferUploadHeap->SetName(L"Vertex Upload Heap");
+
+    /*XMFLOAT3 pos[2576];
+    for (size_t i = 0; i < 2576; i++)
+    {
+        pos[i] = currentMesh.vert[i].pos;
+    }*/
 
     // store vertex buffer in upload heap
     D3D12_SUBRESOURCE_DATA vertexData = {};
@@ -137,13 +136,13 @@ bool Scene::CreateVertexBuffers(ID3D12Device6* device, ID3D12GraphicsCommandList
 
     // we are now creating a command with the command list to copy the data from
     // the upload heap to the default heap
-    if (!vBufferUploadHeap)
+    if (!currentMesh.vBufferUploadHeap)
     {
         return false;
     }
     else
     {
-        UpdateSubresources(commandList, currentMesh.vertexBuffer, vBufferUploadHeap, 0, 0, 1, &vertexData);
+        UpdateSubresources(commandList, currentMesh.vertexBuffer, currentMesh.vBufferUploadHeap, 0, 0, 1, &vertexData);
     }
 
     // transition the vertex buffer data from copy destination state to vertex buffer state
@@ -153,8 +152,8 @@ bool Scene::CreateVertexBuffers(ID3D12Device6* device, ID3D12GraphicsCommandList
 
 
     
-    int nrOfIndices = currentMesh.face.size();
-    int iBufferSize = sizeof(DWORD) * nrOfIndices;
+    int nrOfIndices = currentMesh.face.size()*3;
+    int iBufferSize = sizeof(int) * nrOfIndices;
 
     // create default heap to hold index buffer
     device->CreateCommittedResource(
@@ -166,39 +165,39 @@ bool Scene::CreateVertexBuffers(ID3D12Device6* device, ID3D12GraphicsCommandList
         IID_PPV_ARGS(&currentMesh.indexBuffer));
 
     // create upload heap to upload index buffer
-    ID3D12Resource* iBufferUploadHeap = nullptr;
+    currentMesh.iBufferUploadHeap = nullptr;
     device->CreateCommittedResource(
         &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), // upload heap
         D3D12_HEAP_FLAG_NONE, // no flags
-        &CD3DX12_RESOURCE_DESC::Buffer(vBufferSize), // resource description for a buffer
+        &CD3DX12_RESOURCE_DESC::Buffer(iBufferSize), // resource description for a buffer
         D3D12_RESOURCE_STATE_GENERIC_READ, // GPU will read from this buffer and copy its contents to the default heap
         nullptr,
-        IID_PPV_ARGS(&iBufferUploadHeap));
-    iBufferUploadHeap->SetName(L"Index Buffer Upload Resource Heap2");
+        IID_PPV_ARGS(&currentMesh.iBufferUploadHeap));
+    currentMesh.iBufferUploadHeap->SetName(L"Index Buffer Upload Resource Heap2");
 
     // store vertex buffer in upload heap
     D3D12_SUBRESOURCE_DATA indexData = {};
     indexData.pData = reinterpret_cast<BYTE*>(currentMesh.face.data()); // pointer to our index array
-    indexData.RowPitch = iBufferSize; // size of all our index buffer
+    indexData.RowPitch = iBufferSize;   // size of all our index buffer
     indexData.SlicePitch = iBufferSize; // also the size of our index buffer
 
     // we are now creating a command with the command list to copy the data from
     // the upload heap to the default heap
-    if (!iBufferUploadHeap)
+    if (!currentMesh.iBufferUploadHeap)
     {
         return false;
     }
     else
     {
-        UpdateSubresources(commandList, currentMesh.indexBuffer, iBufferUploadHeap, 0, 0, 1, &indexData);
+        UpdateSubresources(commandList, currentMesh.indexBuffer, currentMesh.iBufferUploadHeap, 0, 0, 1, &indexData);
     }
 
     // transition the vertex buffer data from copy destination state to vertex buffer state
-    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(currentMesh.indexBuffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
+    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(currentMesh.indexBuffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_INDEX_BUFFER));
 
     // create a vertex buffer view for the triangle. We get the GPU memory address to the vertex pointer using the GetGPUVirtualAddress() method
     //subset.m_vertexBufferView.BufferLocation = subset.m_vertexBuffer->GetGPUVirtualAddress();
-    currentMesh.vertexBufferView.BufferLocation = vBufferUploadHeap->GetGPUVirtualAddress(); // temporärt upload heap för memcopy medans cpu animering
+    currentMesh.vertexBufferView.BufferLocation = currentMesh.vertexBuffer->GetGPUVirtualAddress(); // temporärt upload heap för memcopy medans cpu animering
     currentMesh.vertexBufferView.StrideInBytes = sizeof(Vert);
     currentMesh.vertexBufferView.SizeInBytes = vBufferSize;
 
@@ -207,9 +206,14 @@ bool Scene::CreateVertexBuffers(ID3D12Device6* device, ID3D12GraphicsCommandList
     currentMesh.indexBufferView.Format = DXGI_FORMAT_R32_UINT; // 32-bit unsigned integer (this is what a dword is, double word, a word is 2 bytes)
     currentMesh.indexBufferView.SizeInBytes = iBufferSize;
 
-    vBufferUploadHeap->Release();
-    iBufferUploadHeap->Release();
+    
 
     return true;
 
+}
+
+void Scene::ReleaseUploadHeaps()
+{
+    currentMesh.vBufferUploadHeap->Release();
+    currentMesh.iBufferUploadHeap->Release();
 }

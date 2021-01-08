@@ -829,11 +829,16 @@ void MD5Model::ReleaseUploadHeaps()
 
 void MD5Model::CleanUp()
 {
-    for (int i = 0; i < m_model.numSubsets; i++)
+    
+    if (m_model.numSubsets > 0)
     {
-        m_model.subsets[i].m_indexBuffer->Release();
-        m_model.subsets[i].m_vertexBuffer->Release();
+        for (int i = 0; i < m_model.numSubsets; i++)
+        {
+            m_model.subsets[i].m_indexBuffer->Release();
+            m_model.subsets[i].m_vertexBuffer->Release();
+        }
     }
+    
 }
 
 std::vector<MD5Model::ModelSubset>& MD5Model::GetModelSubsets()

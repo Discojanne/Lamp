@@ -104,10 +104,10 @@ bool ioSMD::importTriangles(FILE*f, Mesh &m ){
                     v.boneWeight[nr] = 1-sumW;
                 }
             }
-
+            
             /* convention clash: flip vertical texture coordinate (sigh) */
             v.uv.y=1-v.uv.y;
-
+        
             m.vert.push_back(v);
 
             pi++;
@@ -178,7 +178,9 @@ bool ioSMD::importPose(FILE* f, Pose &pose){
         XMFLOAT3 t;
         fscanf(f,"%f %f %f %f %f %f", &(t.x),&(t.z),&(t.y), r+0, r+1, r+2);
         //if (i>=(int)s.bone.size()) continue; // ignore rotation for non-existing bones
-        if (i>=(int)pose.matr.size()) pose.matr.resize(i+1);
+        if (i >= (int)pose.matr.size()) 
+            pose.matr.resize(i+1);
+
         pose.setRotation( i, euler2matrix(r) );
         pose.setTranslation( i, t );
     }

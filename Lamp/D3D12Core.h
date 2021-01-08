@@ -36,6 +36,12 @@ public:
 
 	struct ConstantBufferPerObject {
 		DirectX::XMFLOAT4X4 wvpMat;
+
+		//NormalMatrix = transpose(inverse(modelview));
+		DirectX::XMFLOAT4X4 normalMatrix;
+
+		// float2x4 boneDualQuaternion[32]; ???
+		DualQuaternion boneDualQuaternion[32];
 	};
 
 private:

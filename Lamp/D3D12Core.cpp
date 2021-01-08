@@ -86,7 +86,7 @@ bool Direct3D12::InitD3D(HWND hwnd, int width, int height)
     if (!LoadModels())
         return false;
 
-    //m_textureNameArray = { L"face.jpg", L"arms.jpg", L"shirt.jpg", L"pants.jpg", L"shoes.jpg", };
+    m_textureNameArray = { L"bride_dress_normalmap.dds", L"arms.jpg", L"shirt.jpg", L"pants.jpg", L"shoes.jpg", };
     //LoadMD5Model(L"boy.md5mesh", m_model->m_model, &m_textureNameArray);
 
     if (!InitConstantBuffer())
@@ -113,10 +113,8 @@ bool Direct3D12::InitD3D(HWND hwnd, int width, int height)
 void Direct3D12::Update(double dt)
 {
 
-    m_model->UpdateMD5Model(dt, 0);
+    //m_model->UpdateMD5Model(dt, 0);
 
-
-   // update app logic, such as moving the camera or figuring out what objects are in view
 
    // create rotation matrices
     DirectX::XMMATRIX rotXMat = DirectX::XMMatrixRotationX(0.0f * dt);
@@ -153,9 +151,12 @@ void Direct3D12::Update(double dt)
 
     // now do cube2's world matrix
     // create rotation matrices for cube2
-    rotXMat = DirectX::XMMatrixRotationX(0.15f * dt);
+    /*rotXMat = DirectX::XMMatrixRotationX(0.15f * dt);
     rotYMat = DirectX::XMMatrixRotationY(0.1f * dt);
-    rotZMat = DirectX::XMMatrixRotationZ(0.5f * dt);
+    rotZMat = DirectX::XMMatrixRotationZ(0.5f * dt);*/
+    rotXMat = DirectX::XMMatrixRotationX(0.0f * dt);
+    rotYMat = DirectX::XMMatrixRotationY(0.5f * dt);
+    rotZMat = DirectX::XMMatrixRotationZ(0.0f * dt);
 
     // add rotation to cube2's rotation matrix and store it
     rotMat = rotZMat * (DirectX::XMLoadFloat4x4(&m_cube2RotMat) * (rotXMat * rotYMat));
@@ -180,12 +181,42 @@ void Direct3D12::Update(double dt)
 
     // copy our ConstantBuffer instance to the mapped constant buffer resource
     //memcpy(m_cbvGPUAddress[m_frameIndex] + m_ConstantBufferPerObjectAlignedSize, &m_cbPerObject, sizeof(m_cbPerObject));
-    memcpy(m_cbvGPUAddress[m_frameIndex] + m_ConstantBufferPerObjectAlignedSize, &m_cbPerObject, sizeof(m_cbPerObject));
+//    memcpy(m_cbvGPUAddress[m_frameIndex] + m_ConstantBufferPerObjectAlignedSize, &m_cbPerObject, sizeof(m_cbPerObject));
+    
+    DirectX::XMStoreFloat4x4(&m_cbPerObject.normalMatrix, XMMatrixTranspose(XMMatrixInverse(nullptr, transposed)));
+    
+    static float time = 0.0f;
+    static int anitmaionframe = 0;
+
+    time += dt;
+    if (time > 0.03f)
+    {
+        anitmaionframe++;
+        if (anitmaionframe > 31)
+        {
+            anitmaionframe = 0;
+        }
+        time = 0;
+    }
+    /*Mesh tmpMesh = m_scene->currentMesh;
+   
+    tmpMesh.freezeAt(m_scene->currentAniDqs.pose[anitmaionframe]);
+    tmpMesh.computeNormals();
+    tmpMesh.computeTangentDirs();*/
+
+
+    for (size_t i = 0; i < m_scene->currentAniDqs.pose[i].quat.size(); i++)
+    {
+        m_cbPerObject.boneDualQuaternion[i] = m_scene->currentAniDqs.pose[anitmaionframe].quat[i];
+    }
+
+    memcpy(m_cbvGPUAddress[m_frameIndex], &m_cbPerObject, sizeof(ConstantBufferPerObject)); // cube1's constant buffer data
+    //memcpy(m_cbvGPUAddress[m_frameIndex] + sizeof(ConstantBufferPerObject::wvpMat), &m_cbPerObject.normalMatrix, sizeof(ConstantBufferPerObject::normalMatrix)); // cube1's constant buffer data
+    //memcpy(m_cbvGPUAddress[m_frameIndex] + sizeof(ConstantBufferPerObject::normalMatrix), &m_scene->currentAniDqs.pose[0], sizeof(ConstantBufferPerObject::boneDualQuaternion)); // cube1's constant buffer data
 
     // store cube2's world matrix
     DirectX::XMStoreFloat4x4(&m_cube2WorldMat, worldMat);
 
-    //BuildCamMatrices(800,600);
 }
 
 bool Direct3D12::UpdatePipeline()
@@ -259,18 +290,22 @@ bool Direct3D12::UpdatePipeline()
     m_commandList->SetGraphicsRootConstantBufferView(0, m_constantBufferUploadHeaps[m_frameIndex]->GetGPUVirtualAddress());
     m_commandList->SetPipelineState(m_pipelineStateObject);
 
-    for (auto& m: m_model->GetModelSubsets())
-    {
-        m_commandList->SetGraphicsRootDescriptorTable(1, m_mainDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
-        m_commandList->IASetVertexBuffers(0, 1, &m.m_vertexBufferView); // set the vertex buffer (using the vertex buffer view)
-        m_commandList->IASetIndexBuffer(&m.m_indexBufferView);
-        m_commandList->DrawIndexedInstanced(m.indices.size(), 1, 0, 0, 0);
-    }
+    //for (auto& m: m_model->GetModelSubsets())
+    //{
+    //    m_commandList->SetGraphicsRootDescriptorTable(1, m_mainDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+    //    m_commandList->IASetVertexBuffers(0, 1, &m.m_vertexBufferView); // set the vertex buffer (using the vertex buffer view)
+    //    m_commandList->IASetIndexBuffer(&m.m_indexBufferView);
+    //    m_commandList->DrawIndexedInstanced(m.indices.size(), 1, 0, 0, 0);
+    //}
     
+    m_commandList->SetGraphicsRootDescriptorTable(1, m_mainDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+    m_commandList->IASetVertexBuffers(0, 1, &m_scene->currentMesh.vertexBufferView); // set the vertex buffer (using the vertex buffer view)
+    m_commandList->IASetIndexBuffer(&m_scene->currentMesh.indexBufferView);
+    m_commandList->DrawIndexedInstanced(m_scene->currentMesh.face.size()*3, 1, 0, 0, 0);
 
 
     // Mesh shader
-    m_commandList->SetGraphicsRootConstantBufferView(0, m_constantBufferUploadHeaps[m_frameIndex]->GetGPUVirtualAddress() + m_ConstantBufferPerObjectAlignedSize);
+    //m_commandList->SetGraphicsRootConstantBufferView(0, m_constantBufferUploadHeaps[m_frameIndex]->GetGPUVirtualAddress() + m_ConstantBufferPerObjectAlignedSize);
 
     m_commandList->SetPipelineState(m_MSpipelineStateObject);
     m_commandList->DispatchMesh(24, 1, 1);
@@ -361,7 +396,11 @@ void Direct3D12::Cleanup()
 
     };
 
-    m_model->CleanUp();
+    if (m_model)
+    {
+        m_model->CleanUp();
+    }
+    
     m_pipelineStateObject->Release();
     m_MSpipelineStateObject->Release();
     m_rootSignature->Release();
@@ -670,23 +709,28 @@ bool Direct3D12::InitConstantBuffer()
         hr = m_device->CreateCommittedResource(
             &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), // this heap will be used to upload the constant buffer data
             D3D12_HEAP_FLAG_NONE, // no flags
-            &CD3DX12_RESOURCE_DESC::Buffer(1024 * 64), // size of the resource heap. Must be a multiple of 64KB for single-textures and constant buffers
+            //&CD3DX12_RESOURCE_DESC::Buffer(1024 * 64), // size of the resource heap. Must be a multiple of 64KB for single-textures and constant buffers
+            &CD3DX12_RESOURCE_DESC::Buffer(sizeof(ConstantBufferPerObject)), // size of the resource heap. Must be a multiple of 64KB for single-textures and constant buffers
             D3D12_RESOURCE_STATE_GENERIC_READ, // will be data that is read from so we keep it in the generic read state
             nullptr, // we do not have use an optimized clear value for constant buffers
             IID_PPV_ARGS(&m_constantBufferUploadHeaps[i]));
         m_constantBufferUploadHeaps[i]->SetName(L"Constant Buffer Upload Resource Heap");
 
-        ZeroMemory(&m_cbPerObject, sizeof(m_cbPerObject));
+        //???????????
+        //ZeroMemory(&m_scene->currentAniDqs.pose[0], sizeof(m_scene->currentAniDqs.pose));
 
         CD3DX12_RANGE readRange(0, 0);    // We do not intend to read from this resource on the CPU. (so end is less than or equal to begin)
 
         // map the resource heap to get a gpu virtual address to the beginning of the heap
         hr = m_constantBufferUploadHeaps[i]->Map(0, &readRange, reinterpret_cast<void**>(&m_cbvGPUAddress[i]));
 
+        
         // Because of the constant read alignment requirements, constant buffer views must be 256 bit aligned. Our buffers are smaller than 256 bits,
         // so we need to add spacing between the two buffers, so that the second buffer starts at 256 bits from the beginning of the resource heap.
-        memcpy(m_cbvGPUAddress[i], &m_cbPerObject, sizeof(m_cbPerObject)); // cube1's constant buffer data
-        memcpy(m_cbvGPUAddress[i] + m_ConstantBufferPerObjectAlignedSize, &m_cbPerObject, sizeof(m_cbPerObject)); // cube2's constant buffer data
+        //memcpy(m_cbvGPUAddress[i], &m_cbPerObject.wvpMat, sizeof(ConstantBufferPerObject::wvpMat)); // cube1's constant buffer data
+        //memcpy(m_cbvGPUAddress[i] + sizeof(ConstantBufferPerObject::wvpMat), &m_cbPerObject.normalMatrix, sizeof(ConstantBufferPerObject::normalMatrix)); // cube1's constant buffer data
+        //memcpy(m_cbvGPUAddress[i] + sizeof(ConstantBufferPerObject::normalMatrix), &m_scene->currentAniDqs.pose[0], sizeof(ConstantBufferPerObject::boneDualQuaternion)); // cube1's constant buffer data
+        memcpy(m_cbvGPUAddress[i], &m_cbPerObject, sizeof(ConstantBufferPerObject)); // cube1's constant buffer data
     }
 
     return true;
@@ -793,7 +837,7 @@ bool Direct3D12::InitShaderLayoutGPS()
     DXILShaderCompiler::Desc desc;
     desc.source = nullptr;
     desc.sourceSize = 0;
-    desc.filePath = L"Resources/Shaders/VertexShadertest.hlsl";
+    desc.filePath = L"Resources/Shaders/vsDQold.hlsl";
     desc.entryPoint = L"VSmain";
     desc.targetProfile = L"vs_6_5";
 
@@ -816,7 +860,7 @@ bool Direct3D12::InitShaderLayoutGPS()
 
     desc.source = nullptr;
     desc.sourceSize = 0;
-    desc.filePath = L"Resources/Shaders/testMS.hlsl";
+    desc.filePath = L"Resources/Shaders/ms.hlsl";
     desc.entryPoint = L"MSmain";
     desc.targetProfile = L"ms_6_5";
 
@@ -840,7 +884,7 @@ bool Direct3D12::InitShaderLayoutGPS()
 
     desc.source = nullptr;
     desc.sourceSize = 0;
-    desc.filePath = L"Resources/Shaders/PixelShadertest.hlsl";
+    desc.filePath = L"Resources/Shaders/ps.hlsl";
     desc.entryPoint = L"PSmain";
     desc.targetProfile = L"ps_6_5";
 
@@ -869,9 +913,16 @@ bool Direct3D12::InitShaderLayoutGPS()
         { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
         { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
         { "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-        { "SW",   0, DXGI_FORMAT_R32_UINT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-        { "WC",   0, DXGI_FORMAT_R32_UINT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        { "TANGENT",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        { "BITANGENT",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        { "BONEINDEX",   0, DXGI_FORMAT_R32G32B32A32_SINT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        { "BONEWEIGHT",   0, DXGI_FORMAT_R32G32B32A32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        { "DFT",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        { "DFB",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        { "FLIPPED",   0, DXGI_FORMAT_R32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
     };
+
+  
 
     // fill out an input layout description structure
     D3D12_INPUT_LAYOUT_DESC inputLayoutDesc = {};
@@ -912,7 +963,7 @@ bool Direct3D12::InitShaderLayoutGPS()
     psoDesc.NumRenderTargets = 1; // we are only binding one render target
     psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT); // a default depth stencil state
     psoDesc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
-
+    psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_FRONT;
 
     ///
 
@@ -956,12 +1007,12 @@ bool Direct3D12::InitShaderLayoutGPS()
 bool Direct3D12::LoadModels()
 {
 
-    m_model = new MD5Model();
+    /*m_model = new MD5Model();
     if (!m_model->LoadMD5Model(m_device, m_commandList, L"Resources/models/boblampclean.md5mesh", &m_textureNameArray))
         return false;
 
     if (!m_model->LoadMD5Anim(L"Resources/models/boblampclean.md5anim"))
-        return false;
+        return false;*/
 
     m_scene = new Scene;
     if (!m_scene->LoadMesh("bride_dress"))
@@ -970,7 +1021,7 @@ bool Direct3D12::LoadModels()
     if (!m_scene->LoadAnimation("man_walk"))
         return false;
 
-    //m_scene->CreateVertexBuffers(m_device, m_commandList);
+    m_scene->CreateVertexBuffers(m_device, m_commandList);
 
     // Now we execute the command list to upload the initial assets (triangle data)
     m_commandList->Close();
@@ -983,6 +1034,7 @@ bool Direct3D12::LoadModels()
     WaitForNextFrameBuffers(m_swapChain->GetCurrentBackBufferIndex());
 
     //m_model->ReleaseUploadHeaps();
+    m_scene->ReleaseUploadHeaps();
 
     return true;
 }
@@ -1085,8 +1137,8 @@ void Direct3D12::BuildCamMatrices(int width, int height)
     
 
     // set starting camera state
-    m_cameraPosition = DirectX::XMFLOAT4(2.0f, 2.0f, -2.0f, 0.0f);
-    m_cameraTarget = DirectX::XMFLOAT4(0.0f, 0.5f, 0.0f, 0.0f);
+    m_cameraPosition = DirectX::XMFLOAT4(0.0f, 10.0f, -20.0f, 0.0f);
+    m_cameraTarget = DirectX::XMFLOAT4(0.0f, 5.0f, 0.0f, 0.0f);
     m_cameraUp = DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 0.0f);
 
     // build view matrix

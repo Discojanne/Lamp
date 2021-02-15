@@ -8,6 +8,8 @@
 #include "MD5Model.h"
 #include "Scene.h"
 
+// Toggle skinning mode: LB / DQ
+#define LB
 
 class DXILShaderCompiler;
 
@@ -29,20 +31,36 @@ public:
 	void WaitForNextFrameBuffers(int frameIndex); // wait until gpu is finished with command list
 	HANDLE getFenceEvent();
 
+	// used for debug
+	int getAnimIndex();
+
 	// this is the structure of our constant buffer.
 	struct ConstantBuffer {
 		DirectX::XMFLOAT4 colorMultiplier;
 	};
-
+#if defined(DQ)
 	struct ConstantBufferPerObject {
+
+		DirectX::XMFLOAT4X4 wvpMat;
+
+		//NormalMatrix = transpose(inverse(modelview));
+		DirectX::XMFLOAT4X4 normalMatrix;
+		
+		DualQuaternion boneDualQuaternion[32];
+};
+#elif defined(LB)
+	struct ConstantBufferPerObject {
+
 		DirectX::XMFLOAT4X4 wvpMat;
 
 		//NormalMatrix = transpose(inverse(modelview));
 		DirectX::XMFLOAT4X4 normalMatrix;
 
-		// float2x4 boneDualQuaternion[32]; ???
-		DualQuaternion boneDualQuaternion[32];
-	};
+		DirectX::XMMATRIX boneDualQuaternion[32];
+};
+#endif
+
+	
 
 private:
 
@@ -87,6 +105,9 @@ private:
 	int m_rtvDescriptorSize; // size of the rtv descriptor on the device (all front and back buffers will be the same size)
 
 	/// to draw geometry 
+
+	//to debug
+	int m_anitmaionframe = 0;
 
 	Scene* m_scene;
 

@@ -94,7 +94,6 @@ bool Scene::LoadAnimation(std::string filename)
 
 bool Scene::CreateVertexBuffers(ID3D12Device6* device, ID3D12GraphicsCommandList6* commandList)
 {
-
     HRESULT hr;
 
     int nrOfVertices = currentMesh.vert.size();
@@ -209,6 +208,43 @@ bool Scene::CreateVertexBuffers(ID3D12Device6* device, ID3D12GraphicsCommandList
     
 
     return true;
+
+}
+
+void Scene::testAnimationFunc(int animFrame)
+{
+    Pose p = currentAni.pose[animFrame];
+
+    //for each vertex
+    for (size_t i = 0; i < currentMesh.vert.size(); i++)
+    {
+        Vert v = currentMesh.vert[i];
+
+        DirectX::XMMATRIX m = DirectX::XMMATRIX(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
+
+        // max 4 bones
+        if (v.boneIndex[0] >= 0)
+            m += p.matr[v.boneIndex[0]] * v.boneWeight[0];
+        
+        if (v.boneIndex[1] >= 0)
+            m += p.matr[v.boneIndex[1]] * v.boneWeight[1];
+      
+        if (v.boneIndex[2] >= 0)
+            m += p.matr[v.boneIndex[2]] * v.boneWeight[2];
+        
+        if (v.boneIndex[3] >= 0)
+            m += p.matr[v.boneIndex[3]] * v.boneWeight[3];
+        
+
+        DirectX::XMVECTOR tmpPos = DirectX::XMVector3Transform({v.pos.x, v.pos.y, v.pos.z, 1.0f}, m);
+
+        v.pos.x = tmpPos.m128_f32[0];
+        v.pos.y = tmpPos.m128_f32[1];
+        v.pos.z = tmpPos.m128_f32[2];
+
+
+        currentMesh.vert[i] = v;
+    }
 
 }
 

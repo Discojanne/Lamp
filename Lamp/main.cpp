@@ -181,9 +181,10 @@ void gameloop() {
 
 			static float a = 0.0f;
 			a += dt;
-			if (a > 1.0f)
+			if (a > 0.05f)
 			{
-				SetWindowTextA(hwnd, std::to_string(timer.fps).c_str());
+				std::string text = std::to_string(timer.fps) + ", AnimFrame: " + std::to_string(D3D12RendererPointer->getAnimIndex());
+				SetWindowTextA(hwnd, text.c_str());
 				a = 0.0f;
 			}
 			

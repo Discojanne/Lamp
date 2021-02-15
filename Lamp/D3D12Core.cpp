@@ -155,7 +155,7 @@ void Direct3D12::Update(double dt)
     rotYMat = DirectX::XMMatrixRotationY(0.1f * dt);
     rotZMat = DirectX::XMMatrixRotationZ(0.5f * dt);*/
     rotXMat = DirectX::XMMatrixRotationX(0.0f * dt);
-    rotYMat = DirectX::XMMatrixRotationY(0.5f * dt);
+    rotYMat = DirectX::XMMatrixRotationY(0.0f * dt);
     rotZMat = DirectX::XMMatrixRotationZ(0.0f * dt);
 
     // add rotation to cube2's rotation matrix and store it
@@ -186,29 +186,39 @@ void Direct3D12::Update(double dt)
     DirectX::XMStoreFloat4x4(&m_cbPerObject.normalMatrix, XMMatrixTranspose(XMMatrixInverse(nullptr, transposed)));
     
     static float time = 0.0f;
-    static int anitmaionframe = 0;
 
     time += dt;
-    if (time > 0.03f)
+    //if (time > 0.03f)
+    if (time > 0.1f)
     {
-        anitmaionframe++;
-        if (anitmaionframe > 31)
+        m_anitmaionframe++;
+        if (m_anitmaionframe > m_scene->currentAni.pose.size() - 1/*31*/)
         {
-            anitmaionframe = 0;
+            m_anitmaionframe = 0;
         }
         time = 0;
     }
+    //anitmaionframe = 30;
+
+
     /*Mesh tmpMesh = m_scene->currentMesh;
    
     tmpMesh.freezeAt(m_scene->currentAniDqs.pose[anitmaionframe]);
     tmpMesh.computeNormals();
     tmpMesh.computeTangentDirs();*/
 
-
+#if defined(DQ)
     for (size_t i = 0; i < m_scene->currentAniDqs.pose[i].quat.size(); i++)
     {
-        m_cbPerObject.boneDualQuaternion[i] = m_scene->currentAniDqs.pose[anitmaionframe].quat[i];
+        m_cbPerObject.boneDualQuaternion[i] = m_scene->currentAniDqs.pose[m_anitmaionframe].quat[i];
     }
+#elif defined(LB)
+    for (size_t i = 0; i < m_scene->currentAni.pose[i].matr.size(); i++)
+    {
+        m_cbPerObject.boneDualQuaternion[i] = m_scene->currentAni.pose[m_anitmaionframe].matr[i];
+    }
+#endif
+    
 
     memcpy(m_cbvGPUAddress[m_frameIndex], &m_cbPerObject, sizeof(ConstantBufferPerObject)); // cube1's constant buffer data
     //memcpy(m_cbvGPUAddress[m_frameIndex] + sizeof(ConstantBufferPerObject::wvpMat), &m_cbPerObject.normalMatrix, sizeof(ConstantBufferPerObject::normalMatrix)); // cube1's constant buffer data
@@ -449,6 +459,11 @@ void Direct3D12::WaitForNextFrameBuffers(int frameIndex)
 HANDLE Direct3D12::getFenceEvent()
 {
 	return m_fenceEvent;
+}
+
+int Direct3D12::getAnimIndex()
+{
+    return m_anitmaionframe;
 }
 
 bool Direct3D12::InitDevice(HWND hwnd)
@@ -837,7 +852,13 @@ bool Direct3D12::InitShaderLayoutGPS()
     DXILShaderCompiler::Desc desc;
     desc.source = nullptr;
     desc.sourceSize = 0;
+
+#if defined(DQ)
     desc.filePath = L"Resources/Shaders/vsDQold.hlsl";
+#elif defined(LB)
+    desc.filePath = L"Resources/Shaders/vsLBold.hlsl";
+#endif
+  
     desc.entryPoint = L"VSmain";
     desc.targetProfile = L"vs_6_5";
 
@@ -1015,11 +1036,13 @@ bool Direct3D12::LoadModels()
         return false;*/
 
     m_scene = new Scene;
-    if (!m_scene->LoadMesh("bride_dress"))
+    if (!m_scene->LoadMesh("cube"))
         return false;
 
-    if (!m_scene->LoadAnimation("man_walk"))
+    if (!m_scene->LoadAnimation("ca2"))
         return false;
+
+    //m_scene->testAnimationFunc(10);
 
     m_scene->CreateVertexBuffers(m_device, m_commandList);
 
@@ -1137,8 +1160,8 @@ void Direct3D12::BuildCamMatrices(int width, int height)
     
 
     // set starting camera state
-    m_cameraPosition = DirectX::XMFLOAT4(0.0f, 10.0f, -20.0f, 0.0f);
-    m_cameraTarget = DirectX::XMFLOAT4(0.0f, 5.0f, 0.0f, 0.0f);
+    m_cameraPosition = DirectX::XMFLOAT4(-3.5f, 1.0f, 3.0f, 0.0f);
+    m_cameraTarget = DirectX::XMFLOAT4(1.0f, 0.0f, 0.0f, 0.0f);
     m_cameraUp = DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 0.0f);
 
     // build view matrix

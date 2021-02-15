@@ -9,12 +9,12 @@
 // used to export/import skeletons, rigged meshes, animations...
 
 XMMATRIX euler2matrix(float* eul){
-    XMMATRIX m;
+    XMMATRIX m(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
     //m.FromEulerAngles(eul[0], eul[1], eul[2]);
     FromEulerAngles(m, eul[0], eul[1], eul[2]);
     // notation clash (sigh): swap Y-Z axes
-    float f[16]={1,0,0,0, 0,0,1,0, 0,1,0,0, 0,0,0,1};
-    XMMATRIX axesSwapper(f);
+    //float f[16]={1,0,0,0, 0,0,1,0, 0,1,0,0, 0,0,0,1};
+    XMMATRIX axesSwapper(1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1);
     m = axesSwapper * m * axesSwapper;
 
     return m;
@@ -89,24 +89,27 @@ bool ioSMD::importTriangles(FILE*f, Mesh &m ){
             );
             if (nr>4) { nr=4;}
             //if  (!( nread==9 || nread == 9+1+nr*2)) qDebug("[%s] (w:%d f:%d),",line,w,m.face.size());
-            assert( nread==9 || nread == 9+1+nr*2);
-            for (int k=0; k<nr; k++) {
+            assert(nread == 9 || nread == 9 + 1 + nr * 2);
+            for (int k = 0; k < nr; k++) {
                 v.boneIndex[k]=tmp[k];
             }
-            for (int k=nr; k<4; k++) {
-                v.boneIndex[k]=-1; v.boneWeight[k]=0;
+            for (int k = nr; k < 4; k++) {
+                v.boneIndex[k]=-1; 
+                v.boneWeight[k]=0;
             }
             float sumW = 0;
-            for (int k = 0; k<4; k++) sumW += v.boneWeight[k];
-            if (sumW<0.999999) {
-                if (nr<4) {
+            for (int k = 0; k < 4; k++) 
+                sumW += v.boneWeight[k];
+
+            if (sumW < 0.999999) {
+                if (nr < 4) {
                     v.boneIndex[nr] = bi;
-                    v.boneWeight[nr] = 1-sumW;
+                    v.boneWeight[nr] = 1 - sumW;
                 }
             }
             
             /* convention clash: flip vertical texture coordinate (sigh) */
-            v.uv.y=1-v.uv.y;
+            v.uv.y = 1 - v.uv.y;
         
             m.vert.push_back(v);
 
@@ -175,12 +178,14 @@ bool ioSMD::importPose(FILE* f, Pose &pose){
             break; // hopefully it is an "end"
         //assert(i<(int)s.bone.size());
         float r[3];
-        XMFLOAT3 t;
-        fscanf(f,"%f %f %f %f %f %f", &(t.x),&(t.z),&(t.y), r+0, r+1, r+2);
+        XMFLOAT3 t = { 0.0f,0.0f,0.0f };
+        fscanf(f, "%f %f %f %f %f %f", &(t.x), &(t.z), &(t.y), r + 0, r + 1, r + 2);
         //if (i>=(int)s.bone.size()) continue; // ignore rotation for non-existing bones
-        if (i >= (int)pose.matr.size()) 
-            pose.matr.resize(i+1);
-
+        if (i >= (int)pose.matr.size()) {
+            int a = i + 1;
+            pose.matr.resize(a);
+        }
+        
         pose.setRotation( i, euler2matrix(r) );
         pose.setTranslation( i, t );
     }

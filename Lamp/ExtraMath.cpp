@@ -62,6 +62,7 @@ void SetColMatrix(XMMATRIX& m, int c, XMFLOAT3 v)
     m.r[0].m128_f32[c] = v.x;
     m.r[1].m128_f32[c] = v.y;
     m.r[2].m128_f32[c] = v.z;
+    //m.r[3].m128_f32[c] = 0.0f;
 }
 
 void SetColMatrix(XMMATRIX& m, int c, XMFLOAT4 v)
@@ -188,11 +189,11 @@ bool GreaterThanFloat2(XMFLOAT2 a, XMFLOAT2 b)
 void FromEulerAngles(XMMATRIX& m, float alpha, float beta, float gamma)
 {
     
-    for (unsigned int i = 0; i < 4; i++)
+   /* for (unsigned int i = 0; i < 4; i++)
     {
         m.r[3].m128_f32[i] = 0;
         m.r[i].m128_f32[3] = 0;
-    };
+    };*/
     //this->SetZero();
     
     float cosalpha = cos(alpha);

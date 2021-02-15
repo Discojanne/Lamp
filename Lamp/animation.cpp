@@ -61,21 +61,36 @@ void Pose::operator *=(const Pose &p){
 }
 
 void Pose::setRotation(int bonei, XMMATRIX r){
-    //matr[bonei].SetColumn(0, r.GetRow4(0));
-    for (unsigned int i = 0; i < 3; i++)
+   
+    /*for (unsigned int i = 0; i < 3; i++)
     {
         SetColMatrix(matr[bonei], i, XMFLOAT3(r.r[i].m128_f32[0], 
             r.r[i].m128_f32[1], r.r[i].m128_f32[2]));
-    }
-    
-    //matr[bonei].SetColumn(1, r.GetRow4(1));
-    //matr[bonei].SetColumn(2, r.GetRow4(2));
+    }*/
+    matr[bonei].r[0].m128_f32[0] = r.r[0].m128_f32[0];
+    matr[bonei].r[1].m128_f32[0] = r.r[0].m128_f32[1];
+    matr[bonei].r[2].m128_f32[0] = r.r[0].m128_f32[2];
+    matr[bonei].r[3].m128_f32[0] = r.r[0].m128_f32[3];
+
+    matr[bonei].r[0].m128_f32[1] = r.r[1].m128_f32[0];
+    matr[bonei].r[1].m128_f32[1] = r.r[1].m128_f32[1];
+    matr[bonei].r[2].m128_f32[1] = r.r[1].m128_f32[2];
+    matr[bonei].r[3].m128_f32[1] = r.r[1].m128_f32[3];
+
+    matr[bonei].r[0].m128_f32[2] = r.r[2].m128_f32[0];
+    matr[bonei].r[1].m128_f32[2] = r.r[2].m128_f32[1];
+    matr[bonei].r[2].m128_f32[2] = r.r[2].m128_f32[2];
+    matr[bonei].r[3].m128_f32[2] = r.r[2].m128_f32[3];
 }
 
 void Pose::setTranslation(int bonei, XMFLOAT3 t){
-    XMFLOAT4 t4( t.x, t.y, t.z, 1 );
-    //matr[bonei].SetColumn( 3, t4 );
-    SetColMatrix(matr[bonei], 3 , t4);
+    //XMFLOAT4 t4( t.x, t.y, t.z, 1 );
+    //SetColMatrix(matr[bonei], 3 , t4);
+
+    matr[bonei].r[0].m128_f32[3] = t.x;
+    matr[bonei].r[1].m128_f32[3] = t.y;
+    matr[bonei].r[2].m128_f32[3] = t.z;
+    matr[bonei].r[3].m128_f32[3] = 1.0f;
 }
 
 void Skeleton::buildTree(){

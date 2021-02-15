@@ -21,10 +21,15 @@ public:
     bool LoadAnimation(std::string filename);
     bool CreateVertexBuffers(ID3D12Device6* device, ID3D12GraphicsCommandList6* commandList);
 
+    // temporary, used to debug animation error
+    void testAnimationFunc(int animFrame);
+
     void ReleaseUploadHeaps();
 
     AnimationDQS currentAniDqs;
     Mesh currentMesh;
+    Animation currentAni;
+
 private:
 
     std::string meshpath = "Resources/models/";
@@ -35,7 +40,7 @@ private:
     
     //QString currentBumpmapFilename;
     //QString currentSpecmapFilename;
-    Animation currentAni;
+    
     
     std::string currentNameMesh, currentNameAni;
     int currentFrame;

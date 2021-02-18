@@ -32,7 +32,6 @@
 
 #include "mesh.h"
 #include "animation.h"
-#include "animation_dqs.h"
 
 
 
@@ -320,31 +319,6 @@ void Mesh::freezeAt(const Pose &p){
 
     }
 }
-
-void Mesh::freezeAt(const PoseDQS &p){
-
-    for (unsigned int vi=0; vi<vert.size(); vi++) {
-        Vert &v(vert[vi]);
-
-        DualQuaternion d;
-        d.a = Quaternion(0,0,0,0);
-        d.b = Quaternion(0,0,0,0);
-
-        for (int k=0; k<MAX_BONES; k++){
-            float wieght = v.boneWeight[k];
-            int       bi = v.boneIndex [k];
-            if (bi>=0 && bi<(int)p.quat.size()) {
-                d.multiplyAndAdd(p.quat[bi] , wieght );
-            }
-        }
-
-        d.normalize();
-
-        v.pos = d.applyToPoint( v.pos );
-
-    }
-}
-
 
 void Mesh::removeUnreferencedVertices(){
 

@@ -28,7 +28,6 @@
 #define ANIMATION_H
 
 
-//#include"base_types.h"
 #include "ExtraMath.h"
 /*
  * classes for animations (Linear Blend Skinning).

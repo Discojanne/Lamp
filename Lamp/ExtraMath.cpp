@@ -203,6 +203,23 @@ void FromEulerAngles(XMMATRIX& m, float alpha, float beta, float gamma)
     float sinbeta = sin(beta);
     float singamma = sin(gamma);
     
+    /// <summary>
+    // https://gyazo.com/035de901de67dce991bf8a444543ab70
+
+    /*m.r[2].m128_f32[3] = cosbeta * cosgamma;
+    m.r[1].m128_f32[3] = -cosalpha * singamma + sinalpha * sinbeta * cosgamma;
+    m.r[0].m128_f32[3] = sinalpha * singamma + cosalpha * sinbeta * cosgamma;
+
+    m.r[2].m128_f32[1] = cosbeta * singamma;
+    m.r[1].m128_f32[1] = cosalpha * cosgamma + sinalpha * sinbeta * singamma;
+    m.r[0].m128_f32[1] = -sinalpha * cosgamma + cosalpha * sinbeta * singamma;
+
+    m.r[2].m128_f32[0] = -sinbeta;
+    m.r[1].m128_f32[0] = sinalpha * cosbeta;
+    m.r[0].m128_f32[0] = cosalpha * cosbeta;*/
+
+    /// <param name="gamma"></param>
+
     m.r[0].m128_f32[0] = cosbeta * cosgamma;
     m.r[1].m128_f32[0] = -cosalpha * singamma + sinalpha * sinbeta * cosgamma;
     m.r[2].m128_f32[0] = sinalpha * singamma + cosalpha * sinbeta * cosgamma;

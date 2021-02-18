@@ -8,7 +8,8 @@ Scene::Scene()
 
 Scene::~Scene()
 {
-    
+    currentMesh.vertexBuffer->Release();
+    currentMesh.indexBuffer->Release();
 }
 
 bool Scene::LoadMesh(std::string filename)
@@ -35,16 +36,13 @@ bool Scene::LoadMesh(std::string filename)
 
 
     Animation tmpAni;
-    //if (!ioSMD::import(openFile(f), currentMesh, tmpAni)) {
     if (!ioSMD::import(pFile, currentMesh, tmpAni)) {
-        //qDebug("Loading mesh: %s", ioSMD::lastErrorString());
         return false;
     }
     //fclose(pFile);
 
     if (!tmpAni.isEmpty()) {
         // if the mesh file also embeds an animation???
-        int a = 5;
     }
 
 
@@ -54,22 +52,16 @@ bool Scene::LoadMesh(std::string filename)
     currentMesh.computeTangentDirs();
     currentMesh.computeDeformFactors();
 
-    //meshBuffersReady = false;
-    //texturesReady = false;
-
     std::string basename = filename;
 
     currentBumpmapFilename = texturepath + basename + "_normalmap.dds";
     currentSpecmapFilename = texturepath + basename + "_specular.dds";
 
-    //update();
     return true;
 }
 
 bool Scene::LoadAnimation(std::string filename)
 {
-    //qDebug("Loading animation %s", filename.toLocal8Bit().data());
-
     FILE* pFile;
     char buffer[100];
 
@@ -81,13 +73,9 @@ bool Scene::LoadAnimation(std::string filename)
     if (!ioSMD::import(pFile, tmpMesh, currentAni))
         return false;
 
-    // small hack: in our looped animations, last frame == 1st frame, so we remove it
+    // in our looped animations, last frame == 1st frame, so we remove it
     currentAni.pose.pop_back();
-
-    currentAniDqs.buildFromAnimation(currentAni);
     currentFrame = 0;
-
-    //update();
 
     return true;
 }
@@ -96,8 +84,27 @@ bool Scene::CreateVertexBuffers(ID3D12Device6* device, ID3D12GraphicsCommandList
 {
     HRESULT hr;
 
-    int nrOfVertices = currentMesh.vert.size();
-    int vBufferSize = sizeof(Vert) * nrOfVertices;
+    ///
+   
+    // Temporary data type used for only transfering pos and bone info.
+    std::vector<VertLite> vertLiteVector;
+
+    for (size_t i = 0; i < currentMesh.vert.size(); i++)
+    {
+        VertLite tmpVL;
+        tmpVL.pos = currentMesh.vert[i].pos;
+        for (size_t j = 0; j < 4; j++)
+        {
+            tmpVL.boneIndex[j] = currentMesh.vert[i].boneIndex[j];
+            tmpVL.boneWeight[j] = currentMesh.vert[i].boneWeight[j];
+        }
+        vertLiteVector.push_back(tmpVL);
+    }
+
+    ///
+
+    int nrOfVertices = vertLiteVector.size();
+    int vBufferSize = sizeof(VertLite) * nrOfVertices;
 
     device->CreateCommittedResource(
         &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT), // a default heap
@@ -121,15 +128,9 @@ bool Scene::CreateVertexBuffers(ID3D12Device6* device, ID3D12GraphicsCommandList
         IID_PPV_ARGS(&currentMesh.vBufferUploadHeap));
     currentMesh.vBufferUploadHeap->SetName(L"Vertex Upload Heap");
 
-    /*XMFLOAT3 pos[2576];
-    for (size_t i = 0; i < 2576; i++)
-    {
-        pos[i] = currentMesh.vert[i].pos;
-    }*/
-
     // store vertex buffer in upload heap
     D3D12_SUBRESOURCE_DATA vertexData = {};
-    vertexData.pData = reinterpret_cast<BYTE*>(currentMesh.vert.data()); // pointer to our vertex array
+    vertexData.pData = reinterpret_cast<BYTE*>(vertLiteVector.data()); // pointer to our vertex array
     vertexData.RowPitch = vBufferSize; // size of all our triangle vertex data
     vertexData.SlicePitch = vBufferSize; // also the size of our triangle vertex data
 
@@ -197,7 +198,7 @@ bool Scene::CreateVertexBuffers(ID3D12Device6* device, ID3D12GraphicsCommandList
     // create a vertex buffer view for the triangle. We get the GPU memory address to the vertex pointer using the GetGPUVirtualAddress() method
     //subset.m_vertexBufferView.BufferLocation = subset.m_vertexBuffer->GetGPUVirtualAddress();
     currentMesh.vertexBufferView.BufferLocation = currentMesh.vertexBuffer->GetGPUVirtualAddress(); // temporärt upload heap för memcopy medans cpu animering
-    currentMesh.vertexBufferView.StrideInBytes = sizeof(Vert);
+    currentMesh.vertexBufferView.StrideInBytes = sizeof(VertLite);
     currentMesh.vertexBufferView.SizeInBytes = vBufferSize;
 
     // create a vertex buffer view for the triangle.We get the GPU memory address to the vertex pointer using the GetGPUVirtualAddress() method

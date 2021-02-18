@@ -35,7 +35,6 @@
 #include "d3dx12.h"
 
 class Pose;
-class PoseDQS;
 
 // how many bone-links per vertex:
 const int MAX_BONES = 4;
@@ -69,9 +68,15 @@ public:
     void orderBoneSlots();
     void maybeSwapBoneSlots(int i, int j);
 
-    /* UN-USED: only for testing numerical in-stability of naive solution */
-    //XMFLOAT3 weightGradient[MAX_BONES];
+};
 
+class VertLite {
+public:
+    VertLite() {}
+    XMFLOAT3 pos; // xyz position
+
+    int boneIndex[MAX_BONES];
+    float boneWeight[MAX_BONES];
 };
 
 class Face{
@@ -114,7 +119,6 @@ public:
     void removeUnreferencedVertices();
 
     void freezeAt(const Pose &p);
-    void freezeAt(const PoseDQS &p);
     void clear();
     void test();
 

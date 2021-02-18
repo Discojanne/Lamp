@@ -78,7 +78,6 @@ bool Direct3D12::InitD3D(HWND hwnd, int width, int height)
     if (!InitRootSignature())
         return false;
 
-    
 
     if (!InitShaderLayoutGPS())
         return false;
@@ -87,7 +86,6 @@ bool Direct3D12::InitD3D(HWND hwnd, int width, int height)
         return false;
 
     m_textureNameArray = { L"bride_dress_normalmap.dds", L"arms.jpg", L"shirt.jpg", L"pants.jpg", L"shoes.jpg", };
-    //LoadMD5Model(L"boy.md5mesh", m_model->m_model, &m_textureNameArray);
 
     if (!InitConstantBuffer())
         return false;
@@ -104,7 +102,7 @@ bool Direct3D12::InitD3D(HWND hwnd, int width, int height)
 
     SetViewportSR(width, height);
 
-    BuildCamMatrices(width, height);
+    m_scene->cam.BuildCamMatrices(width, height);
 
    
 	return true;
@@ -113,81 +111,15 @@ bool Direct3D12::InitD3D(HWND hwnd, int width, int height)
 void Direct3D12::Update(double dt)
 {
 
-    //m_model->UpdateMD5Model(dt, 0);
+    m_scene->cam.Update(dt);
+    m_cbPerObject.wvpMat = m_scene->cam.GenerateWVP();
 
 
-   // create rotation matrices
-    DirectX::XMMATRIX rotXMat = DirectX::XMMatrixRotationX(0.0f * dt);
-    DirectX::XMMATRIX rotYMat = DirectX::XMMatrixRotationY(0.5f * dt);
-    DirectX::XMMATRIX rotZMat = DirectX::XMMatrixRotationZ(0.0f * dt);
 
-    // add rotation to cube1's rotation matrix and store it
-    DirectX::XMMATRIX rotMat = DirectX::XMLoadFloat4x4(&m_cube1RotMat) * rotXMat * rotYMat * rotZMat;
-    DirectX::XMStoreFloat4x4(&m_cube1RotMat, rotMat);
 
-    // create translation matrix for cube 1 from cube 1's position vector
-    DirectX::XMMATRIX translationMat = DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat4(&m_cube1Position));
-
-    DirectX::XMMATRIX scaleMat = DirectX::XMMatrixScaling(0.02f, 0.02f, 0.02f);
-
-    // create cube1's world matrix by first rotating the cube, then positioning the rotated cube
-    DirectX::XMMATRIX worldMat = scaleMat * rotMat * translationMat;
-
-    // store cube1's world matrix
-    DirectX::XMStoreFloat4x4(&m_cube1WorldMat, worldMat);
-
-    
-
-    // update constant buffer for cube1
-    // create the wvp matrix and store in constant buffer
-    DirectX::XMMATRIX viewMat = DirectX::XMLoadFloat4x4(&m_cameraViewMat); // load view matrix
-    DirectX::XMMATRIX projMat = DirectX::XMLoadFloat4x4(&m_cameraProjMat); // load projection matrix
-    DirectX::XMMATRIX wvpMat = DirectX::XMLoadFloat4x4(&m_cube1WorldMat) * viewMat * projMat; // create wvp matrix
-    DirectX::XMMATRIX transposed = DirectX::XMMatrixTranspose(wvpMat); // must transpose wvp matrix for the gpu
-    DirectX::XMStoreFloat4x4(&m_cbPerObject.wvpMat, transposed); // store transposed wvp matrix in constant buffer
-
-    // copy our ConstantBuffer instance to the mapped constant buffer resource
-    memcpy(m_cbvGPUAddress[m_frameIndex], &m_cbPerObject, sizeof(m_cbPerObject));
-
-    // now do cube2's world matrix
-    // create rotation matrices for cube2
-    /*rotXMat = DirectX::XMMatrixRotationX(0.15f * dt);
-    rotYMat = DirectX::XMMatrixRotationY(0.1f * dt);
-    rotZMat = DirectX::XMMatrixRotationZ(0.5f * dt);*/
-    rotXMat = DirectX::XMMatrixRotationX(0.0f * dt);
-    rotYMat = DirectX::XMMatrixRotationY(0.0f * dt);
-    rotZMat = DirectX::XMMatrixRotationZ(0.0f * dt);
-
-    // add rotation to cube2's rotation matrix and store it
-    rotMat = rotZMat * (DirectX::XMLoadFloat4x4(&m_cube2RotMat) * (rotXMat * rotYMat));
-    DirectX::XMStoreFloat4x4(&m_cube2RotMat, rotMat);
-
-    // create translation matrix for cube 2 to offset it from cube 1 (its position relative to cube1
-    DirectX::XMMATRIX translationOffsetMat = DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat4(&m_cube2PositionOffset));
-
-    // we want cube 2 to be half the size of cube 1, so we scale it by .5 in all dimensions
-    scaleMat = DirectX::XMMatrixScaling(0.5f, 0.5f, 0.5f);
-
-    // reuse worldMat. 
-    // first we scale cube2. scaling happens relative to point 0,0,0, so you will almost always want to scale first
-    // then we translate it. 
-    // then we rotate it. rotation always rotates around point 0,0,0
-    // finally we move it to cube 1's position, which will cause it to rotate around cube 1
-    worldMat = scaleMat * translationOffsetMat * rotMat * translationMat;
-
-    wvpMat = DirectX::XMLoadFloat4x4(&m_cube2WorldMat) * viewMat * projMat; // create wvp matrix
-    transposed = DirectX::XMMatrixTranspose(wvpMat); // must transpose wvp matrix for the gpu
-    DirectX::XMStoreFloat4x4(&m_cbPerObject.wvpMat, transposed); // store transposed wvp matrix in constant buffer
-
-    // copy our ConstantBuffer instance to the mapped constant buffer resource
-    //memcpy(m_cbvGPUAddress[m_frameIndex] + m_ConstantBufferPerObjectAlignedSize, &m_cbPerObject, sizeof(m_cbPerObject));
-//    memcpy(m_cbvGPUAddress[m_frameIndex] + m_ConstantBufferPerObjectAlignedSize, &m_cbPerObject, sizeof(m_cbPerObject));
-    
-    DirectX::XMStoreFloat4x4(&m_cbPerObject.normalMatrix, XMMatrixTranspose(XMMatrixInverse(nullptr, transposed)));
-    
     static float time = 0.0f;
-
     time += dt;
+
     //if (time > 0.03f)
     if (time > 0.1f)
     {
@@ -198,35 +130,13 @@ void Direct3D12::Update(double dt)
         }
         time = 0;
     }
-    //anitmaionframe = 30;
 
-
-    /*Mesh tmpMesh = m_scene->currentMesh;
-   
-    tmpMesh.freezeAt(m_scene->currentAniDqs.pose[anitmaionframe]);
-    tmpMesh.computeNormals();
-    tmpMesh.computeTangentDirs();*/
-
-#if defined(DQ)
-    for (size_t i = 0; i < m_scene->currentAniDqs.pose[i].quat.size(); i++)
-    {
-        m_cbPerObject.boneDualQuaternion[i] = m_scene->currentAniDqs.pose[m_anitmaionframe].quat[i];
-    }
-#elif defined(LB)
     for (size_t i = 0; i < m_scene->currentAni.pose[i].matr.size(); i++)
     {
-        m_cbPerObject.boneDualQuaternion[i] = m_scene->currentAni.pose[m_anitmaionframe].matr[i];
+        m_cbPerObject.bonePoseMatrices[i] = m_scene->currentAni.pose[m_anitmaionframe].matr[i];
     }
-#endif
-    
 
-    memcpy(m_cbvGPUAddress[m_frameIndex], &m_cbPerObject, sizeof(ConstantBufferPerObject)); // cube1's constant buffer data
-    //memcpy(m_cbvGPUAddress[m_frameIndex] + sizeof(ConstantBufferPerObject::wvpMat), &m_cbPerObject.normalMatrix, sizeof(ConstantBufferPerObject::normalMatrix)); // cube1's constant buffer data
-    //memcpy(m_cbvGPUAddress[m_frameIndex] + sizeof(ConstantBufferPerObject::normalMatrix), &m_scene->currentAniDqs.pose[0], sizeof(ConstantBufferPerObject::boneDualQuaternion)); // cube1's constant buffer data
-
-    // store cube2's world matrix
-    DirectX::XMStoreFloat4x4(&m_cube2WorldMat, worldMat);
-
+    memcpy(m_cbvGPUAddress[m_frameIndex], &m_cbPerObject, sizeof(ConstantBufferPerObject));
 }
 
 bool Direct3D12::UpdatePipeline()
@@ -300,13 +210,7 @@ bool Direct3D12::UpdatePipeline()
     m_commandList->SetGraphicsRootConstantBufferView(0, m_constantBufferUploadHeaps[m_frameIndex]->GetGPUVirtualAddress());
     m_commandList->SetPipelineState(m_pipelineStateObject);
 
-    //for (auto& m: m_model->GetModelSubsets())
-    //{
-    //    m_commandList->SetGraphicsRootDescriptorTable(1, m_mainDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
-    //    m_commandList->IASetVertexBuffers(0, 1, &m.m_vertexBufferView); // set the vertex buffer (using the vertex buffer view)
-    //    m_commandList->IASetIndexBuffer(&m.m_indexBufferView);
-    //    m_commandList->DrawIndexedInstanced(m.indices.size(), 1, 0, 0, 0);
-    //}
+ 
     
     m_commandList->SetGraphicsRootDescriptorTable(1, m_mainDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
     m_commandList->IASetVertexBuffers(0, 1, &m_scene->currentMesh.vertexBufferView); // set the vertex buffer (using the vertex buffer view)
@@ -315,8 +219,6 @@ bool Direct3D12::UpdatePipeline()
 
 
     // Mesh shader
-    //m_commandList->SetGraphicsRootConstantBufferView(0, m_constantBufferUploadHeaps[m_frameIndex]->GetGPUVirtualAddress() + m_ConstantBufferPerObjectAlignedSize);
-
     m_commandList->SetPipelineState(m_MSpipelineStateObject);
     m_commandList->DispatchMesh(24, 1, 1);
 
@@ -405,11 +307,6 @@ void Direct3D12::Cleanup()
         m_constantBufferUploadHeaps[i]->Release();
 
     };
-
-    if (m_model)
-    {
-        m_model->CleanUp();
-    }
     
     m_pipelineStateObject->Release();
     m_MSpipelineStateObject->Release();
@@ -845,20 +742,13 @@ bool Direct3D12::InitShaderLayoutGPS()
     m_shaderCompiler->init();
 
 
-
     // compile vertex shader
     IDxcBlob* vertexShader; // d3d blob for holding vertex shader bytecode
 
     DXILShaderCompiler::Desc desc;
     desc.source = nullptr;
     desc.sourceSize = 0;
-
-#if defined(DQ)
-    desc.filePath = L"Resources/Shaders/vsDQold.hlsl";
-#elif defined(LB)
     desc.filePath = L"Resources/Shaders/vsLBold.hlsl";
-#endif
-  
     desc.entryPoint = L"VSmain";
     desc.targetProfile = L"vs_6_5";
 
@@ -870,13 +760,11 @@ bool Direct3D12::InitShaderLayoutGPS()
         return false;
     }
 
-    // fill out a shader bytecode structure, which is basically just a pointer
-    // to the shader bytecode and the size of the shader bytecode
     D3D12_SHADER_BYTECODE vertexShaderBytecode = {};
     vertexShaderBytecode.BytecodeLength = vertexShader->GetBufferSize();
     vertexShaderBytecode.pShaderBytecode = vertexShader->GetBufferPointer();
 
-    //// compile mesh shader
+    // compile mesh shader
     IDxcBlob* meshShader;
 
     desc.source = nullptr;
@@ -897,10 +785,7 @@ bool Direct3D12::InitShaderLayoutGPS()
     meshShaderBytecode.BytecodeLength = meshShader->GetBufferSize();
     meshShaderBytecode.pShaderBytecode = meshShader->GetBufferPointer();
 
-    //m_device->CreateRootSignature(0, meshShaderBytecode.pShaderBytecode,
-    //    meshShaderBytecode.BytecodeLength, IID_PPV_ARGS(&m_rootSignatureMS));
-
-    //// compile pixel shader
+    // compile pixel shader
     IDxcBlob* pixelShader;
 
     desc.source = nullptr;
@@ -921,15 +806,15 @@ bool Direct3D12::InitShaderLayoutGPS()
     pixelShaderBytecode.BytecodeLength = pixelShader->GetBufferSize();
     pixelShaderBytecode.pShaderBytecode = pixelShader->GetBufferPointer();
 
-    //// create input layout
-    //D3D12_INPUT_ELEMENT_DESC inputLayout[] =
-    //{
-    //    { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-    //    { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
-    //};
-
     // create input layout
     D3D12_INPUT_ELEMENT_DESC inputLayout[] =
+    {
+        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        { "BONEINDEX",   0, DXGI_FORMAT_R32G32B32A32_SINT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        { "BONEWEIGHT",   0, DXGI_FORMAT_R32G32B32A32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
+    };
+
+    /*D3D12_INPUT_ELEMENT_DESC inputLayout[] =
     {
         { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
         { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
@@ -941,8 +826,7 @@ bool Direct3D12::InitShaderLayoutGPS()
         { "DFT",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
         { "DFB",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
         { "FLIPPED",   0, DXGI_FORMAT_R32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-    };
-
+    };*/
   
 
     // fill out an input layout description structure
@@ -952,21 +836,9 @@ bool Direct3D12::InitShaderLayoutGPS()
     inputLayoutDesc.NumElements = sizeof(inputLayout) / sizeof(D3D12_INPUT_ELEMENT_DESC);
     inputLayoutDesc.pInputElementDescs = inputLayout;
 
-    // create a pipeline state object (PSO)
-
-    // In a real application, you will have many pso's. for each different shader
-    // or different combinations of shaders, different blend states or different rasterizer states,
-    // different topology types (point, line, triangle, patch), or a different number
-    // of render targets you will need a pso
-
-    // VS is the only required shader for a pso. You might be wondering when a case would be where
-    // you only set the VS. It's possible that you have a pso that only outputs data with the stream
-    // output, and not on a render target, which means you would not need anything after the stream
-    // output.
 
     DXGI_SAMPLE_DESC sampleDesc = {};
     sampleDesc.Count = 1; // multisample count (no multisampling, so we just put 1, since we still need 1 sample)
-
 
 
     D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {}; // a structure to define a pso
@@ -1028,13 +900,6 @@ bool Direct3D12::InitShaderLayoutGPS()
 bool Direct3D12::LoadModels()
 {
 
-    /*m_model = new MD5Model();
-    if (!m_model->LoadMD5Model(m_device, m_commandList, L"Resources/models/boblampclean.md5mesh", &m_textureNameArray))
-        return false;
-
-    if (!m_model->LoadMD5Anim(L"Resources/models/boblampclean.md5anim"))
-        return false;*/
-
     m_scene = new Scene;
     if (!m_scene->LoadMesh("cube"))
         return false;
@@ -1042,21 +907,23 @@ bool Direct3D12::LoadModels()
     if (!m_scene->LoadAnimation("ca2"))
         return false;
 
-    //m_scene->testAnimationFunc(10);
+    //m_scene->testAnimationFunc(6);
 
     m_scene->CreateVertexBuffers(m_device, m_commandList);
 
-    // Now we execute the command list to upload the initial assets (triangle data)
+
+
+
+
+
     m_commandList->Close();
     ID3D12CommandList* ppCommandLists[] = { m_commandList };
     m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
-    // increment the fence value now, otherwise the buffer might not be uploaded by the time we start drawing
     Signal();
 
     WaitForNextFrameBuffers(m_swapChain->GetCurrentBackBufferIndex());
 
-    //m_model->ReleaseUploadHeaps();
     m_scene->ReleaseUploadHeaps();
 
     return true;
@@ -1143,54 +1010,6 @@ void Direct3D12::SetViewportSR(int width, int height)
     m_scissorRect.top = 0;
     m_scissorRect.right = width;
     m_scissorRect.bottom = height;
-}
-
-void Direct3D12::BuildCamMatrices(int width, int height)
-{
-
-    // build projection and view matrix
-    DirectX::XMMATRIX tmpMat = DirectX::XMMatrixPerspectiveFovLH(45.0f * (3.14f / 180.0f), (float)width / (float)height, 0.1f, 1000.0f);
-    XMStoreFloat4x4(&m_cameraProjMat, tmpMat);
-
-   /* static float fade = 0;
-    if (fade > -120.0f)
-    {
-        fade -= 0.02f;
-    }*/
-    
-
-    // set starting camera state
-    m_cameraPosition = DirectX::XMFLOAT4(-3.5f, 1.0f, 3.0f, 0.0f);
-    m_cameraTarget = DirectX::XMFLOAT4(1.0f, 0.0f, 0.0f, 0.0f);
-    m_cameraUp = DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 0.0f);
-
-    // build view matrix
-    DirectX::XMVECTOR cPos = DirectX::XMLoadFloat4(&m_cameraPosition);
-    DirectX::XMVECTOR cTarg = DirectX::XMLoadFloat4(&m_cameraTarget);
-    DirectX::XMVECTOR cUp = DirectX::XMLoadFloat4(&m_cameraUp);
-    tmpMat = DirectX::XMMatrixLookAtLH(cPos, cTarg, cUp);
-    XMStoreFloat4x4(&m_cameraViewMat, tmpMat);
-
-    // set starting cubes position
-    // first cube
-    m_cube1Position = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f); // set cube 1's position
-    DirectX::XMVECTOR posVec = XMLoadFloat4(&m_cube1Position); // create xmvector for cube1's position
-
-    tmpMat = DirectX::XMMatrixTranslationFromVector(posVec); // create translation matrix from cube1's position vector
-    DirectX::XMStoreFloat4x4(&m_cube1RotMat, DirectX::XMMatrixIdentity()); // initialize cube1's rotation matrix to identity matrix
-    DirectX::XMStoreFloat4x4(&m_cube1WorldMat, tmpMat); // store cube1's world matrix
-
-    // second cube
-    m_cube2PositionOffset = DirectX::XMFLOAT4(1.5f, 0.0f, 0.0f, 0.0f);
-    posVec = DirectX::XMLoadFloat4(&m_cube2PositionOffset); // create xmvector for cube2's position
-                                                            // we are rotating around cube1 here, so add cube2's position to cube1
-
-
-    tmpMat = DirectX::XMMatrixTranslationFromVector(posVec); // create translation matrix from cube2's position offset vector
-    DirectX::XMStoreFloat4x4(&m_cube2RotMat, DirectX::XMMatrixIdentity()); // initialize cube2's rotation matrix to identity matrix
-    DirectX::XMStoreFloat4x4(&m_cube2WorldMat, tmpMat); // store cube2's world matrix
-
-
 }
 
 bool Direct3D12::LoadTextures(LPCWSTR texturepath)

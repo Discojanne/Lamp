@@ -143,32 +143,28 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="animation.cpp" />
-    <ClCompile Include="animation_dqs.cpp" />
+    <ClCompile Include="Camera.cpp" />
     <ClCompile Include="CompilerClass.cpp" />
     <ClCompile Include="D3D12Core.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="dual_quaternion.cpp" />
     <ClCompile Include="ioSMD.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="MD5Model.cpp" />
     <ClCompile Include="ExtraMath.cpp" />
     <ClCompile Include="mesh.cpp" />
     <ClCompile Include="Scene.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="animation.h" />
-    <ClInclude Include="animation_dqs.h" />
+    <ClInclude Include="Camera.h" />
     <ClInclude Include="CompilerClass.h" />
     <ClInclude Include="D3D12Core.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="d3dx12.h" />
-    <ClInclude Include="dual_quaternion.h" />
     <ClInclude Include="ioSMD.h" />
-    <ClInclude Include="MD5Model.h" />
     <ClInclude Include="ExtraMath.h" />
     <ClInclude Include="mesh.h" />
     <ClInclude Include="Scene.h" />

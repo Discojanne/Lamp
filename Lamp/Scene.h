@@ -2,11 +2,9 @@
 
 #include <string>
 
-// new stuff
 #include "mesh.h"
-
 #include "animation.h"
-#include "animation_dqs.h"
+#include "Camera.h"
 
 struct ID3D12Device6;
 struct ID3D12GraphicsCommandList6;
@@ -26,20 +24,15 @@ public:
 
     void ReleaseUploadHeaps();
 
-    AnimationDQS currentAniDqs;
     Mesh currentMesh;
     Animation currentAni;
+    Camera cam;
 
 private:
 
     std::string meshpath = "Resources/models/";
     std::string texturepath = "Resources/textures/";
     std::string animationpath = "Resources/animations/";
-
-    /* data being shown */
-    
-    //QString currentBumpmapFilename;
-    //QString currentSpecmapFilename;
     
     
     std::string currentNameMesh, currentNameAni;

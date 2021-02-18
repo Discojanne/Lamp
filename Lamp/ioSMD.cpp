@@ -14,6 +14,8 @@ XMMATRIX euler2matrix(float* eul){
     FromEulerAngles(m, eul[0], eul[1], eul[2]);
     // notation clash (sigh): swap Y-Z axes
     //float f[16]={1,0,0,0, 0,0,1,0, 0,1,0,0, 0,0,0,1};
+  
+
     XMMATRIX axesSwapper(1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1);
     m = axesSwapper * m * axesSwapper;
 
@@ -180,12 +182,38 @@ bool ioSMD::importPose(FILE* f, Pose &pose){
         float r[3];
         XMFLOAT3 t = { 0.0f,0.0f,0.0f };
         fscanf(f, "%f %f %f %f %f %f", &(t.x), &(t.z), &(t.y), r + 0, r + 1, r + 2);
+
         //if (i>=(int)s.bone.size()) continue; // ignore rotation for non-existing bones
         if (i >= (int)pose.matr.size()) {
             int a = i + 1;
             pose.matr.resize(a);
         }
+
+        /// <summary>
         
+        //DirectX::XMMATRIX poseRotMat = DirectX::XMMatrixIdentity();
+
+
+        // // create rotation matrices
+        //DirectX::XMMATRIX rotXMat = DirectX::XMMatrixRotationX(r[0]);
+        //DirectX::XMMATRIX rotYMat = DirectX::XMMatrixRotationY(r[1]);
+        //DirectX::XMMATRIX rotZMat = DirectX::XMMatrixRotationZ(r[2]);
+
+        //// add rotation to cube1's rotation matrix and store it
+        //poseRotMat = poseRotMat * rotXMat * rotYMat * rotZMat;
+
+        //// create translation matrix for cube 1 from cube 1's position vector
+        //DirectX::XMMATRIX translationMat = DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat4(&XMFLOAT4(t.x,t.y,t.z,1.0f)));
+        //
+        //DirectX::XMMATRIX scaleMat = DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f);
+
+        //// create cube1's world matrix by first rotating the cube, then positioning the rotated cube
+        //DirectX::XMMATRIX worldMat = scaleMat * poseRotMat * translationMat;
+
+
+        //pose.matr[i] = worldMat;
+
+        /// <returns></returns>
         pose.setRotation( i, euler2matrix(r) );
         pose.setTranslation( i, t );
     }

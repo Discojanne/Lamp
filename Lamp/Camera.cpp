@@ -15,7 +15,7 @@ void Camera::BuildCamMatrices(int width, int height)
     XMStoreFloat4x4(&m_cameraProjMat, tmpMat);
 
      // set starting camera state
-    m_cameraPosition = DirectX::XMFLOAT4(0.0f, 1.0f, 15.0f, 0.0f);
+    m_cameraPosition = DirectX::XMFLOAT4(-15.0f, 1.0f, 15.0f, 0.0f);
     m_cameraTarget = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
     m_cameraUp = DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 0.0f);
 

@@ -150,7 +150,6 @@ bool Scene::CreateVertexBuffers(ID3D12Device6* device, ID3D12GraphicsCommandList
 
 
 
-
     
     int nrOfIndices = currentMesh.face.size()*3;
     int iBufferSize = sizeof(int) * nrOfIndices;
@@ -196,13 +195,12 @@ bool Scene::CreateVertexBuffers(ID3D12Device6* device, ID3D12GraphicsCommandList
     commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(currentMesh.indexBuffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_INDEX_BUFFER));
 
     // create a vertex buffer view for the triangle. We get the GPU memory address to the vertex pointer using the GetGPUVirtualAddress() method
-    //subset.m_vertexBufferView.BufferLocation = subset.m_vertexBuffer->GetGPUVirtualAddress();
-    currentMesh.vertexBufferView.BufferLocation = currentMesh.vertexBuffer->GetGPUVirtualAddress(); // temporärt upload heap för memcopy medans cpu animering
+    currentMesh.vertexBufferView.BufferLocation = currentMesh.vBufferUploadHeap->GetGPUVirtualAddress(); // temporärt upload heap för memcopy medans cpu animering
     currentMesh.vertexBufferView.StrideInBytes = sizeof(VertLite);
     currentMesh.vertexBufferView.SizeInBytes = vBufferSize;
 
     // create a vertex buffer view for the triangle.We get the GPU memory address to the vertex pointer using the GetGPUVirtualAddress() method
-    currentMesh.indexBufferView.BufferLocation = currentMesh.indexBuffer->GetGPUVirtualAddress();
+    currentMesh.indexBufferView.BufferLocation = currentMesh.iBufferUploadHeap->GetGPUVirtualAddress();
     currentMesh.indexBufferView.Format = DXGI_FORMAT_R32_UINT; // 32-bit unsigned integer (this is what a dword is, double word, a word is 2 bytes)
     currentMesh.indexBufferView.SizeInBytes = iBufferSize;
 

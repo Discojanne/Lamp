@@ -131,9 +131,24 @@ void Direct3D12::Update(double dt)
         time = 0;
     }
 
+    // new
+    /*m_scene->testAnimationFunc(0);
+
+    CD3DX12_RANGE readRange(0, 0);
+    void* data = nullptr;
+    m_scene->currentMesh.vBufferUploadHeap->Map(0, &readRange, &data);
+    int nrOfVerts = m_scene->currentMesh.vert.size();
+    memcpy(data, m_scene->currentMesh.vert.data(), sizeof(VertLite) * nrOfVerts);
+    m_scene->currentMesh.vBufferUploadHeap->Unmap(0, nullptr);*/
+
+    
+    
+
+    ///                         
+
     for (size_t i = 0; i < m_scene->currentAni.pose[i].matr.size(); i++)
     {
-        m_cbPerObject.bonePoseMatrices[i] = m_scene->currentAni.pose[m_anitmaionframe].matr[i];
+        m_cbPerObject.bonePoseMatrices[i] = DirectX::XMMatrixTranspose(m_scene->currentAni.pose[m_anitmaionframe].matr[i]);
     }
 
     memcpy(m_cbvGPUAddress[m_frameIndex], &m_cbPerObject, sizeof(ConstantBufferPerObject));
@@ -620,28 +635,18 @@ bool Direct3D12::InitConstantBuffer()
         // create resource for cube 1
         hr = m_device->CreateCommittedResource(
             &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), // this heap will be used to upload the constant buffer data
-            D3D12_HEAP_FLAG_NONE, // no flags
-            //&CD3DX12_RESOURCE_DESC::Buffer(1024 * 64), // size of the resource heap. Must be a multiple of 64KB for single-textures and constant buffers
+            D3D12_HEAP_FLAG_NONE,            
             &CD3DX12_RESOURCE_DESC::Buffer(sizeof(ConstantBufferPerObject)), // size of the resource heap. Must be a multiple of 64KB for single-textures and constant buffers
             D3D12_RESOURCE_STATE_GENERIC_READ, // will be data that is read from so we keep it in the generic read state
             nullptr, // we do not have use an optimized clear value for constant buffers
             IID_PPV_ARGS(&m_constantBufferUploadHeaps[i]));
         m_constantBufferUploadHeaps[i]->SetName(L"Constant Buffer Upload Resource Heap");
 
-        //???????????
-        //ZeroMemory(&m_scene->currentAniDqs.pose[0], sizeof(m_scene->currentAniDqs.pose));
-
         CD3DX12_RANGE readRange(0, 0);    // We do not intend to read from this resource on the CPU. (so end is less than or equal to begin)
 
         // map the resource heap to get a gpu virtual address to the beginning of the heap
         hr = m_constantBufferUploadHeaps[i]->Map(0, &readRange, reinterpret_cast<void**>(&m_cbvGPUAddress[i]));
-
         
-        // Because of the constant read alignment requirements, constant buffer views must be 256 bit aligned. Our buffers are smaller than 256 bits,
-        // so we need to add spacing between the two buffers, so that the second buffer starts at 256 bits from the beginning of the resource heap.
-        //memcpy(m_cbvGPUAddress[i], &m_cbPerObject.wvpMat, sizeof(ConstantBufferPerObject::wvpMat)); // cube1's constant buffer data
-        //memcpy(m_cbvGPUAddress[i] + sizeof(ConstantBufferPerObject::wvpMat), &m_cbPerObject.normalMatrix, sizeof(ConstantBufferPerObject::normalMatrix)); // cube1's constant buffer data
-        //memcpy(m_cbvGPUAddress[i] + sizeof(ConstantBufferPerObject::normalMatrix), &m_scene->currentAniDqs.pose[0], sizeof(ConstantBufferPerObject::boneDualQuaternion)); // cube1's constant buffer data
         memcpy(m_cbvGPUAddress[i], &m_cbPerObject, sizeof(ConstantBufferPerObject)); // cube1's constant buffer data
     }
 
@@ -924,7 +929,7 @@ bool Direct3D12::LoadModels()
 
     WaitForNextFrameBuffers(m_swapChain->GetCurrentBackBufferIndex());
 
-    m_scene->ReleaseUploadHeaps();
+    //m_scene->ReleaseUploadHeaps();
 
     return true;
 }

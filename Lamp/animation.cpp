@@ -81,15 +81,22 @@ void Pose::setRotation(int bonei, XMMATRIX r){
     matr[bonei].r[1].m128_f32[2] = r.r[2].m128_f32[1];
     matr[bonei].r[2].m128_f32[2] = r.r[2].m128_f32[2];
     matr[bonei].r[3].m128_f32[2] = r.r[2].m128_f32[3];
+
+    // new
+    matr[bonei] = DirectX::XMMatrixTranspose(matr[bonei]);
 }
 
 void Pose::setTranslation(int bonei, XMFLOAT3 t){
-    //XMFLOAT4 t4( t.x, t.y, t.z, 1 );
-    //SetColMatrix(matr[bonei], 3 , t4);
 
-    matr[bonei].r[0].m128_f32[3] = t.x;
-    matr[bonei].r[1].m128_f32[3] = t.y;
-    matr[bonei].r[2].m128_f32[3] = t.z;
+    //matr[bonei].r[0].m128_f32[3] = t.x;
+    //matr[bonei].r[1].m128_f32[3] = t.y;
+    //matr[bonei].r[2].m128_f32[3] = t.z;
+    //matr[bonei].r[3].m128_f32[3] = 1.0f;
+
+    // new
+    matr[bonei].r[3].m128_f32[0] = t.x;
+    matr[bonei].r[3].m128_f32[1] = t.y;
+    matr[bonei].r[3].m128_f32[2] = t.z;
     matr[bonei].r[3].m128_f32[3] = 1.0f;
 }
 

@@ -15,8 +15,13 @@ XMMATRIX euler2matrix(float* eul){
     // notation clash (sigh): swap Y-Z axes
     //float f[16]={1,0,0,0, 0,0,1,0, 0,1,0,0, 0,0,0,1};
   
-
-    XMMATRIX axesSwapper(1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1);
+    //new 
+    m = DirectX::XMMatrixTranspose(m);
+        
+    XMMATRIX axesSwapper(   1, 0, 0, 0, 
+                            0, 0, 1, 0, 
+                            0, 1, 0, 0, 
+                            0, 0, 0, 1);
     m = axesSwapper * m * axesSwapper;
 
     return m;
@@ -247,6 +252,14 @@ bool ioSMD::import(FILE* f, Mesh &m , Animation &a ){
         if (!importPose(f,p)) break;
         s.cumulate( p );
         p *= restPose;
+
+        // new
+        for (size_t k = 0; k < p.matr.size(); k++)
+        {
+            p.matr[k] = DirectX::XMMatrixTranspose(p.matr[k]);
+        }
+        
+
         a.pose.push_back( p );
     }
 

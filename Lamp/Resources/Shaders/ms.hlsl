@@ -6,17 +6,18 @@
 cbuffer ConstantBufferTest : register(b0)
 {
     float4x4 wvpMat;
+	float4x4 boneMatrix[32];
 };
 
 struct MSvertex
 {
 	float4 pos : SV_POSITION;
-	float2 texCoord : TEXCOORD;
-	float3 normal : NORMAL;
-    //new stuff
-	float3 color : COLOR;
-	float3 lightDir : LIGHTDIR;
-	float v_norm_err : ERR;
+	//float2 texCoord : TEXCOORD;
+	//float3 normal : NORMAL;
+    //   //new stuff
+	//float3 color : COLOR;
+	//float3 lightDir : LIGHTDIR;
+	//float v_norm_err : ERR;
 };
 
 
@@ -113,9 +114,9 @@ void MSmain(in uint groupThreadId : SV_GroupThreadID,
     {
         float4 pos = cubeVertices[groupThreadId];
         outVerts[groupThreadId].pos = TransformPos(pos);
-		outVerts[groupThreadId].texCoord = cubeCoords[groupThreadId];
-		outVerts[groupThreadId].normal = float3(1.0f, 0.0f, 0.0f);
-		outVerts[groupThreadId].lightDir = float3(1.0f, 0.0f, 0.0f);
+		//outVerts[groupThreadId].texCoord = cubeCoords[groupThreadId];
+		//outVerts[groupThreadId].normal = float3(1.0f, 0.0f, 0.0f);
+		//outVerts[groupThreadId].lightDir = float3(1.0f, 0.0f, 0.0f);
 	}
 
     outIndices[groupThreadId] = cubeIndices[groupThreadId];

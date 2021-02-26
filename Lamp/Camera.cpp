@@ -15,7 +15,9 @@ void Camera::BuildCamMatrices(int width, int height)
     XMStoreFloat4x4(&m_cameraProjMat, tmpMat);
 
      // set starting camera state
-    m_cameraPosition = DirectX::XMFLOAT4(-15.0f, 1.0f, 15.0f, 0.0f);
+    /*m_cameraPosition = DirectX::XMFLOAT4(10.0f, 10.0f, 40.0f, 0.0f);
+    m_cameraTarget = DirectX::XMFLOAT4(0.0f, 5.0f, 0.0f, 0.0f);*/
+    m_cameraPosition = DirectX::XMFLOAT4(6.0f, 1.0f, 0.0f, 0.0f);
     m_cameraTarget = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
     m_cameraUp = DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 0.0f);
 
@@ -47,8 +49,8 @@ DirectX::XMMATRIX Camera::GenerateWVP(DirectX::XMMATRIX worldMatrixOfObject)
 void Camera::Update(float dt)
 {
     // create rotation matrices
-    DirectX::XMMATRIX rotXMat = DirectX::XMMatrixRotationX(0.0f * dt);
-    DirectX::XMMATRIX rotYMat = DirectX::XMMatrixRotationY(0.5f * dt);
+    DirectX::XMMATRIX rotXMat = DirectX::XMMatrixRotationX(0.5f * dt);
+    DirectX::XMMATRIX rotYMat = DirectX::XMMatrixRotationY(0.0f * dt);
     DirectX::XMMATRIX rotZMat = DirectX::XMMatrixRotationZ(0.0f * dt);
 
     // add rotation to cube1's rotation matrix and store it

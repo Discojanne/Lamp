@@ -93,6 +93,9 @@ public:
     bool isEmpty() const;
 
     Mesh();
+    // Temporary data type used for only transfering pos and bone info.
+    std::vector<VertLite> vertLiteVector;
+
     std::vector<Vert> vert;
     std::vector<Face> face;
 

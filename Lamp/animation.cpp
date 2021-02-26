@@ -26,8 +26,6 @@
 
 #include "animation.h"
 
-//#include <QDebug>
-
 typedef unsigned int uint;
 
 void Skeleton::cumulate(Pose &p){
@@ -39,16 +37,27 @@ void Skeleton::cumulate(Pose &p){
 void Skeleton::cumulateRecusrive(Pose &p, int boneIndex){
     for (uint i=0; i<bone[boneIndex].next.size(); i++) {
         int j = bone[boneIndex].next[i];
-        p.matr[ j ] =  p.matr[ boneIndex ] * p.matr[ j ] ;
+        //p.matr[ j ] =  p.matr[ boneIndex ] * p.matr[ j ] ;
+        // new
+        p.matr[j] = DirectX::XMMatrixMultiply(p.matr[boneIndex], p.matr[j]);
         cumulateRecusrive( p, j ); // recursive call
     }
+
+    // new
+    //for (uint i = 0; i < bone[boneIndex].next.size(); i++) {
+    //    int j = bone[boneIndex].next[i];
+    //    p.matr[j] = p.matr[j] * DirectX::XMMatrixTranspose(p.matr[boneIndex]);
+    //    cumulateRecusrive(p, j); // recursive call
+    //}
 }
 
 
 
 void Pose::invert(){
     for (uint i=0; i<matr.size(); i++) {
-        matr[i] = inverseOfIsometry(matr[i]);
+        //matr[i] = inverseOfIsometry(matr[i]);
+        // new
+        matr[i] = DirectX::XMMatrixInverse(nullptr, matr[i]);
     }
     
 }
@@ -56,7 +65,10 @@ void Pose::invert(){
 void Pose::operator *=(const Pose &p){
     assert( p.matr.size() == matr.size() );
     for (uint i=0; i<matr.size(); i++){
-        matr[i] = matr[i] * p.matr[i];
+        //matr[i] = matr[i] * p.matr[i];
+
+        //new
+        matr[i] = DirectX::XMMatrixMultiply(matr[i], p.matr[i]);
     }
 }
 
@@ -83,21 +95,35 @@ void Pose::setRotation(int bonei, XMMATRIX r){
     matr[bonei].r[3].m128_f32[2] = r.r[2].m128_f32[3];
 
     // new
-    matr[bonei] = DirectX::XMMatrixTranspose(matr[bonei]);
+    //matr[bonei] = DirectX::XMMatrixTranspose(matr[bonei]);
 }
 
 void Pose::setTranslation(int bonei, XMFLOAT3 t){
 
-    //matr[bonei].r[0].m128_f32[3] = t.x;
-    //matr[bonei].r[1].m128_f32[3] = t.y;
-    //matr[bonei].r[2].m128_f32[3] = t.z;
-    //matr[bonei].r[3].m128_f32[3] = 1.0f;
+    matr[bonei].r[0].m128_f32[3] = t.x;
+    matr[bonei].r[1].m128_f32[3] = t.y;
+    matr[bonei].r[2].m128_f32[3] = t.z;
+    matr[bonei].r[3].m128_f32[3] = 1.0f;
 
     // new
+   /* matr[bonei].r[3].m128_f32[0] = t.x;
+    matr[bonei].r[3].m128_f32[1] = t.y;
+    matr[bonei].r[3].m128_f32[2] = t.z;
+    matr[bonei].r[3].m128_f32[3] = 1.0f;*/
+
+    // new new
+    //matr[bonei] = DirectX::XMMatrixTranslation(t.x, t.y, t.z);
+
+    // new new new
+   /* matr[bonei] = DirectX::XMMatrixTranspose(matr[bonei]);
     matr[bonei].r[3].m128_f32[0] = t.x;
     matr[bonei].r[3].m128_f32[1] = t.y;
     matr[bonei].r[3].m128_f32[2] = t.z;
-    matr[bonei].r[3].m128_f32[3] = 1.0f;
+    matr[bonei].r[3].m128_f32[3] = 1.0f;*/
+
+    // new new new new
+    //matr[bonei] = DirectX::XMMatrixTranslation(t.x, t.y, t.z);
+
 }
 
 void Skeleton::buildTree(){

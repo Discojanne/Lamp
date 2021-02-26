@@ -36,7 +36,6 @@ private:
     
     
     std::string currentNameMesh, currentNameAni;
-    int currentFrame;
     std::string currentBumpmapFilename;
     std::string currentSpecmapFilename;
 };

@@ -189,13 +189,6 @@ bool GreaterThanFloat2(XMFLOAT2 a, XMFLOAT2 b)
 void FromEulerAngles(XMMATRIX& m, float alpha, float beta, float gamma)
 {
     
-   /* for (unsigned int i = 0; i < 4; i++)
-    {
-        m.r[3].m128_f32[i] = 0;
-        m.r[i].m128_f32[3] = 0;
-    };*/
-    //this->SetZero();
-    
     float cosalpha = cos(alpha);
     float cosbeta = cos(beta);
     float cosgamma = cos(gamma);
@@ -206,9 +199,9 @@ void FromEulerAngles(XMMATRIX& m, float alpha, float beta, float gamma)
     /// <summary>
     // https://gyazo.com/035de901de67dce991bf8a444543ab70
 
-    /*m.r[2].m128_f32[3] = cosbeta * cosgamma;
-    m.r[1].m128_f32[3] = -cosalpha * singamma + sinalpha * sinbeta * cosgamma;
-    m.r[0].m128_f32[3] = sinalpha * singamma + cosalpha * sinbeta * cosgamma;
+    /*m.r[2].m128_f32[2] = cosbeta * cosgamma;
+    m.r[1].m128_f32[2] = -cosalpha * singamma + sinalpha * sinbeta * cosgamma;
+    m.r[0].m128_f32[2] = sinalpha * singamma + cosalpha * sinbeta * cosgamma;
 
     m.r[2].m128_f32[1] = cosbeta * singamma;
     m.r[1].m128_f32[1] = cosalpha * cosgamma + sinalpha * sinbeta * singamma;
@@ -216,7 +209,9 @@ void FromEulerAngles(XMMATRIX& m, float alpha, float beta, float gamma)
 
     m.r[2].m128_f32[0] = -sinbeta;
     m.r[1].m128_f32[0] = sinalpha * cosbeta;
-    m.r[0].m128_f32[0] = cosalpha * cosbeta;*/
+    m.r[0].m128_f32[0] = cosalpha * cosbeta;
+
+    m.r[3].m128_f32[3] = 1;*/
 
     /// <param name="gamma"></param>
 

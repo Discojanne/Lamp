@@ -74,8 +74,7 @@ bool Scene::LoadAnimation(std::string filename)
         return false;
 
     // in our looped animations, last frame == 1st frame, so we remove it
-    currentAni.pose.pop_back();
-    currentFrame = 0;
+    //currentAni.pose.pop_back();
 
     return true;
 }
@@ -87,7 +86,7 @@ bool Scene::CreateVertexBuffers(ID3D12Device6* device, ID3D12GraphicsCommandList
     ///
    
     // Temporary data type used for only transfering pos and bone info.
-    std::vector<VertLite> vertLiteVector;
+    //std::vector<VertLite> vertLiteVector;
 
     for (size_t i = 0; i < currentMesh.vert.size(); i++)
     {
@@ -98,12 +97,14 @@ bool Scene::CreateVertexBuffers(ID3D12Device6* device, ID3D12GraphicsCommandList
             tmpVL.boneIndex[j] = currentMesh.vert[i].boneIndex[j];
             tmpVL.boneWeight[j] = currentMesh.vert[i].boneWeight[j];
         }
-        vertLiteVector.push_back(tmpVL);
+        currentMesh.vertLiteVector.push_back(tmpVL);
     }
+
+    
 
     ///
 
-    int nrOfVertices = vertLiteVector.size();
+    int nrOfVertices = currentMesh.vertLiteVector.size();
     int vBufferSize = sizeof(VertLite) * nrOfVertices;
 
     device->CreateCommittedResource(
@@ -130,7 +131,7 @@ bool Scene::CreateVertexBuffers(ID3D12Device6* device, ID3D12GraphicsCommandList
 
     // store vertex buffer in upload heap
     D3D12_SUBRESOURCE_DATA vertexData = {};
-    vertexData.pData = reinterpret_cast<BYTE*>(vertLiteVector.data()); // pointer to our vertex array
+    vertexData.pData = reinterpret_cast<BYTE*>(currentMesh.vertLiteVector.data()); // pointer to our vertex array
     vertexData.RowPitch = vBufferSize; // size of all our triangle vertex data
     vertexData.SlicePitch = vBufferSize; // also the size of our triangle vertex data
 
@@ -214,11 +215,22 @@ void Scene::testAnimationFunc(int animFrame)
 {
     Pose p = currentAni.pose[animFrame];
 
+    currentMesh.vertLiteVector.clear();
+
     //for each vertex
     for (size_t i = 0; i < currentMesh.vert.size(); i++)
     {
-        Vert v = currentMesh.vert[i];
+        const Vert& vO = currentMesh.vert[i];
 
+       
+        VertLite v;
+        v.pos = vO.pos;
+        for (size_t j = 0; j < 4; j++)
+        {
+            v.boneIndex[j] = vO.boneIndex[j];
+            v.boneWeight[j] = vO.boneWeight[j];
+        }
+        
         DirectX::XMMATRIX m = DirectX::XMMATRIX(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
 
         // max 4 bones
@@ -241,9 +253,9 @@ void Scene::testAnimationFunc(int animFrame)
         v.pos.y = tmpPos.m128_f32[1];
         v.pos.z = tmpPos.m128_f32[2];
 
-
-        currentMesh.vert[i] = v;
+        currentMesh.vertLiteVector.push_back(v);
     }
+
 
 }
 

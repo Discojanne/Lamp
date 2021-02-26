@@ -119,7 +119,6 @@ void Direct3D12::Update(double dt)
 
     static float time = 0.0f;
     time += dt;
-
     //if (time > 0.03f)
     if (time > 0.1f)
     {
@@ -130,25 +129,31 @@ void Direct3D12::Update(double dt)
         }
         time = 0;
     }
+    //m_anitmaionframe = 5;
 
-    // new
-    /*m_scene->testAnimationFunc(0);
+    // CPU Skinning - only do output.pos = mul(float4(input.pos, 1.0f), wvpMat); in shader
+    //m_scene->testAnimationFunc(m_anitmaionframe);
+
+    // x D
+   /* for (size_t i = 0; i < m_scene->currentMesh.vertLiteVector.size(); i++)
+    {
+        m_scene->currentMesh.vertLiteVector[i].boneIndex[3] = animFlag;
+    }
 
     CD3DX12_RANGE readRange(0, 0);
     void* data = nullptr;
     m_scene->currentMesh.vBufferUploadHeap->Map(0, &readRange, &data);
-    int nrOfVerts = m_scene->currentMesh.vert.size();
-    memcpy(data, m_scene->currentMesh.vert.data(), sizeof(VertLite) * nrOfVerts);
+    int nrOfVerts = m_scene->currentMesh.vertLiteVector.size();
+    memcpy(data, m_scene->currentMesh.vertLiteVector.data(), sizeof(VertLite) * nrOfVerts);
     m_scene->currentMesh.vBufferUploadHeap->Unmap(0, nullptr);*/
 
     
-    
 
-    ///                         
+    
 
     for (size_t i = 0; i < m_scene->currentAni.pose[i].matr.size(); i++)
     {
-        m_cbPerObject.bonePoseMatrices[i] = DirectX::XMMatrixTranspose(m_scene->currentAni.pose[m_anitmaionframe].matr[i]);
+        m_cbPerObject.bonePoseMatrices[i] = (m_scene->currentAni.pose[m_anitmaionframe].matr[i]);
     }
 
     memcpy(m_cbvGPUAddress[m_frameIndex], &m_cbPerObject, sizeof(ConstantBufferPerObject));
@@ -208,7 +213,8 @@ bool Direct3D12::UpdatePipeline()
     m_commandList->RSSetViewports(1, &m_viewport); // set the viewports
     m_commandList->RSSetScissorRects(1, &m_scissorRect); // set the scissor rects
     //m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST); // set the primitive topology
-    m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // set the primitive topology
+    //m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // set the primitive topology
+    m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST); // set the primitive topology
     
     m_commandList->SetGraphicsRootSignature(m_rootSignature); // set the root signature
 

@@ -9,14 +9,17 @@
 // used to export/import skeletons, rigged meshes, animations...
 
 XMMATRIX euler2matrix(float* eul){
-    XMMATRIX m(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+    XMMATRIX m( 0.0f, 0.0f, 0.0f, 0.0f, 
+                0.0f, 0.0f, 0.0f, 0.0f, 
+                0.0f, 0.0f, 0.0f, 0.0f, 
+                0.0f, 0.0f, 0.0f, 0.0f);
     //m.FromEulerAngles(eul[0], eul[1], eul[2]);
     FromEulerAngles(m, eul[0], eul[1], eul[2]);
     // notation clash (sigh): swap Y-Z axes
     //float f[16]={1,0,0,0, 0,0,1,0, 0,1,0,0, 0,0,0,1};
   
     //new 
-    m = DirectX::XMMatrixTranspose(m);
+    //m = DirectX::XMMatrixTranspose(m);
         
     XMMATRIX axesSwapper(   1, 0, 0, 0, 
                             0, 0, 1, 0, 
@@ -190,37 +193,20 @@ bool ioSMD::importPose(FILE* f, Pose &pose){
 
         //if (i>=(int)s.bone.size()) continue; // ignore rotation for non-existing bones
         if (i >= (int)pose.matr.size()) {
-            int a = i + 1;
-            pose.matr.resize(a);
+            pose.matr.resize(i + 1);
         }
 
-        /// <summary>
-        
-        //DirectX::XMMATRIX poseRotMat = DirectX::XMMatrixIdentity();
-
-
-        // // create rotation matrices
-        //DirectX::XMMATRIX rotXMat = DirectX::XMMatrixRotationX(r[0]);
-        //DirectX::XMMATRIX rotYMat = DirectX::XMMatrixRotationY(r[1]);
-        //DirectX::XMMATRIX rotZMat = DirectX::XMMatrixRotationZ(r[2]);
-
-        //// add rotation to cube1's rotation matrix and store it
-        //poseRotMat = poseRotMat * rotXMat * rotYMat * rotZMat;
-
-        //// create translation matrix for cube 1 from cube 1's position vector
-        //DirectX::XMMATRIX translationMat = DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat4(&XMFLOAT4(t.x,t.y,t.z,1.0f)));
-        //
-        //DirectX::XMMATRIX scaleMat = DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f);
-
-        //// create cube1's world matrix by first rotating the cube, then positioning the rotated cube
-        //DirectX::XMMATRIX worldMat = scaleMat * poseRotMat * translationMat;
-
-
-        //pose.matr[i] = worldMat;
-
-        /// <returns></returns>
         pose.setRotation( i, euler2matrix(r) );
         pose.setTranslation( i, t );
+
+        // new
+        /*DirectX::XMMATRIX translation = DirectX::XMMatrixTranslation(t.x, t.y, t.z);
+        DirectX::XMMATRIX rotation = DirectX::XMMatrixRotationRollPitchYawFromVector({ r[0],r[1],r[2] });
+        pose.matr[i] = DirectX::XMMatrixMultiply(rotation, translation);*/
+
+        // new new
+
+        //pose.matr[i] = DirectX::XMMatrixTranspose(pose.matr[i]);
     }
     return true;
 }
@@ -243,22 +229,35 @@ bool ioSMD::import(FILE* f, Mesh &m , Animation &a ){
     // we assume the first pose is the rest pose
     Pose restPose;
     if (!importPose(f,restPose)) return false; // initial pose
+
+  
+
     s.cumulate( restPose );
+  
     restPose.invert();
+   
+    /*for (size_t k = 0; k < restPose.matr.size(); k++)
+    {
+        restPose.matr[k] = DirectX::XMMatrixTranspose(restPose.matr[k]);
+    }*/
+
 
     a.pose.clear();
     while (1) {
         Pose p;
         if (!importPose(f,p)) break;
+
+        
+
         s.cumulate( p );
+
         p *= restPose;
 
         // new
-        for (size_t k = 0; k < p.matr.size(); k++)
+        /*for (size_t k = 0; k < p.matr.size(); k++)
         {
             p.matr[k] = DirectX::XMMatrixTranspose(p.matr[k]);
-        }
-        
+        }*/
 
         a.pose.push_back( p );
     }

@@ -103,7 +103,8 @@ static uint3 cubeIndices[] =
 [OutputTopology("triangle")]
 [NumThreads(24, 1, 1)]
 void MSmain(in uint groupThreadId : SV_GroupThreadID,
-    out vertices MSvertex outVerts[24], out indices uint3 outIndices[12])
+    out vertices MSvertex outVerts[24], 
+    out indices uint3 outIndices[12])
 {
     const uint numVertices = 24;
     const uint numPrimitives = 12;

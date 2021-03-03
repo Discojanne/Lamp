@@ -26,9 +26,9 @@ VS_OUTPUT VSmain(VS_INPUT input, uint id : SV_InstanceID)
 	for (int i = 0; i < 4; i++)
 		T += boneMatrix[input.boneIndex[i]] * input.boneWeight[i];
 	
-	float3 tmpPos = mul((float3x4) T, float4(input.pos, 1.0f));
-	
+	float3 tmpPos = mul(float4(input.pos, 1.0f), (float4x3) T);
 	
 	output.pos = mul(float4(tmpPos.xyz, 1.0f), wvpMat);
+	
 	return output;
 }

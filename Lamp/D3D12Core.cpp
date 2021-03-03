@@ -112,7 +112,7 @@ void Direct3D12::Update(double dt)
 {
 
     m_scene->cam.Update(dt);
-    m_cbPerObject.wvpMat = m_scene->cam.GenerateWVP();
+    m_cbPerObject.wvpMat = DirectX::XMMatrixTranspose(m_scene->cam.GenerateWVP());
 
 
 
@@ -153,7 +153,7 @@ void Direct3D12::Update(double dt)
 
     for (size_t i = 0; i < m_scene->currentAni.pose[i].matr.size(); i++)
     {
-        m_cbPerObject.bonePoseMatrices[i] = (m_scene->currentAni.pose[m_anitmaionframe].matr[i]);
+        m_cbPerObject.bonePoseMatrices[i] = DirectX::XMMatrixTranspose(m_scene->currentAni.pose[m_anitmaionframe].matr[i]);
     }
 
     memcpy(m_cbvGPUAddress[m_frameIndex], &m_cbPerObject, sizeof(ConstantBufferPerObject));

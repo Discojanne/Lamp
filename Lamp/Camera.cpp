@@ -43,7 +43,7 @@ DirectX::XMMATRIX Camera::GenerateWVP(DirectX::XMMATRIX worldMatrixOfObject)
     DirectX::XMMATRIX viewMat = DirectX::XMLoadFloat4x4(&m_cameraViewMat); // load view matrix
     DirectX::XMMATRIX projMat = DirectX::XMLoadFloat4x4(&m_cameraProjMat); // load projection matrix
     DirectX::XMMATRIX wvpMat = worldMatrixOfObject * viewMat * projMat; // create wvp matrix
-    return DirectX::XMMatrixTranspose(wvpMat); // must transpose wvp matrix for the gpu;
+    return wvpMat; // must transpose wvp matrix for the gpu;
 }
 
 void Camera::Update(float dt)

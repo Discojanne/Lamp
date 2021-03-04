@@ -30,5 +30,8 @@ VS_OUTPUT VSmain(VS_INPUT input, uint id : SV_InstanceID)
 	
 	output.pos = mul(float4(tmpPos.xyz, 1.0f), wvpMat);
 	
+	
+	//output.pos = mul(float4(input.pos, 1.0f), wvpMat);
+	
 	return output;
 }

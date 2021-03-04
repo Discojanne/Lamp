@@ -43,6 +43,7 @@ bool Scene::LoadMesh(std::string filename)
 
     if (!tmpAni.isEmpty()) {
         // if the mesh file also embeds an animation???
+        int q = 5;
     }
 
 
@@ -74,7 +75,7 @@ bool Scene::LoadAnimation(std::string filename)
         return false;
 
     // in our looped animations, last frame == 1st frame, so we remove it
-    //currentAni.pose.pop_back();
+    currentAni.pose.pop_back();
 
     return true;
 }

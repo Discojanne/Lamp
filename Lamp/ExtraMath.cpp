@@ -82,7 +82,12 @@ XMMATRIX inverseOfIsometry(XMMATRIX m)
         m.r[2].m128_f32[3], m.r[3].m128_f32[3]);
 
     //res.SetColumn(3, XMFLOAT4(0, 0, 0, 1));
-    SetColMatrix(res, 3, XMFLOAT4(0, 0, 0, 1));
+    //SetColMatrix(res, 3, XMFLOAT4(0, 0, 0, 1));
+
+    res.r[3].m128_f32[0] = 0.0f;
+    res.r[3].m128_f32[1] = 0.0f;
+    res.r[3].m128_f32[2] = 0.0f;
+    res.r[3].m128_f32[3] = 1.0f;
 
     //res.transposeInPlace();
     res = XMMatrixTranspose(res);
@@ -90,7 +95,12 @@ XMMATRIX inverseOfIsometry(XMMATRIX m)
     XMStoreFloat4(&tra, -XMVector3Transform(XMLoadFloat4(&tra), res));
     tra.w = 1;
     //res.SetColumn(3, tra);
-    SetColMatrix(res, 3, tra);
+    //SetColMatrix(res, 3, tra);
+
+    res.r[3].m128_f32[0] = tra.x;
+    res.r[3].m128_f32[1] = tra.y;
+    res.r[3].m128_f32[2] = tra.z;
+    res.r[3].m128_f32[3] = tra.w;
 
     return res;
 }

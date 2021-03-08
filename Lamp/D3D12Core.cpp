@@ -243,6 +243,26 @@ bool Direct3D12::UpdatePipeline()
     m_commandList->SetPipelineState(m_MSpipelineStateObject);
     m_commandList->DispatchMesh(24, 1, 1);
 
+
+    // mesh subset stuff?
+
+    /*for (auto& mesh : m_model)
+    {
+        m_commandList->SetGraphicsRoot32BitConstant(1, mesh.IndexSize, 0);
+        m_commandList->SetGraphicsRootShaderResourceView(2, mesh.VertexResources[0]->GetGPUVirtualAddress());
+        m_commandList->SetGraphicsRootShaderResourceView(3, mesh.MeshletResource->GetGPUVirtualAddress());
+        m_commandList->SetGraphicsRootShaderResourceView(4, mesh.UniqueVertexIndexResource->GetGPUVirtualAddress());
+        m_commandList->SetGraphicsRootShaderResourceView(5, mesh.PrimitiveIndexResource->GetGPUVirtualAddress());
+
+        for (auto& subset : mesh.MeshletSubsets)
+        {
+            m_commandList->SetGraphicsRoot32BitConstant(1, subset.Offset, 1);
+            m_commandList->DispatchMesh(subset.Count, 1, 1);
+        }
+    }*/
+
+
+
     // transition the "frameIndex" render target from the render target state to the present state. If the debug layer is enabled, you will receive a
     // warning if present is called on the render target when it's not in the present state
     m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex], D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
@@ -267,10 +287,9 @@ void Direct3D12::Render()
         MessageBox(0, L"Failed to update pipeline",
             L"Error", MB_OK);
     }
+
     // create an array of command lists (only one command list here)
     ID3D12CommandList* ppCommandLists[] = { m_commandList };
-
-    // execute the array of command lists
     m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
     // this command goes in at the end of our command queue. we will know when our command queue 

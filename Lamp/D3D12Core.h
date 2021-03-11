@@ -49,7 +49,6 @@ private:
 	bool InitRootSignature();
 	bool InitShaderLayoutGPS();
 	bool LoadModels();
-	bool InitMeshshader();
 	bool InitDepthTesting(int width, int height);
 	void SetViewportSR(int width, int height);
 	bool LoadTextures(LPCWSTR texturepath);
@@ -87,9 +86,10 @@ private:
 	/// God class stuff 
 
 	// Root signature and pipeline states
-	ID3D12RootSignature* m_rootSignature; // root signature defines data shaders will access
-	ID3D12PipelineState* m_pipelineStateObject; // pso containing a pipeline state
-	ID3D12PipelineState* m_MSpipelineStateObject; // pso containing a pipeline state
+	ID3D12RootSignature* m_rootSignature;			// root signature defines data shaders will access
+	ID3D12RootSignature* m_rootSignatureMS; 
+	ID3D12PipelineState* m_pipelineStateObject;		// pso containing a pipeline state
+	ID3D12PipelineState* m_MSpipelineStateObject;
 	DXILShaderCompiler* m_shaderCompiler;
 
 	// Constant buffer

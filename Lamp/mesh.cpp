@@ -43,6 +43,81 @@ const int MAX_TOTAL_BONES = 35;
 Mesh::Mesh(){}
 
 
+bool Mesh::UploadGpuResources(ID3D12Device* device, ID3D12GraphicsCommandList* commandList)
+{
+    // VS data still uploads in Scene::CreateVertexBuffers
+
+
+    HRESULT hr;
+
+    
+
+    /// default heap 
+    auto defaultHeap = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+
+    // Vertex buffer
+    int nrOfVertices = vertLiteVector.size();
+    int vBufferSize = sizeof(VertLite) * nrOfVertices;
+    auto vertexDesc = CD3DX12_RESOURCE_DESC::Buffer(vBufferSize);
+    hr = device->CreateCommittedResource(&defaultHeap, D3D12_HEAP_FLAG_NONE, &vertexDesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&VertResSB));
+    if (FAILED(hr))
+        return false;
+
+    VBViewsSB.BufferLocation = VertResSB->GetGPUVirtualAddress();
+    VBViewsSB.SizeInBytes = sizeof(VertLite);
+    VBViewsSB.StrideInBytes = vBufferSize;
+
+    // Index buffer
+    int nrOfIndices = face.size() * 3;
+    int iBufferSize = sizeof(int) * nrOfIndices;
+    auto indexDesc = CD3DX12_RESOURCE_DESC::Buffer(iBufferSize);
+    hr = device->CreateCommittedResource(&defaultHeap, D3D12_HEAP_FLAG_NONE, &indexDesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&IndexResSB));
+    if (FAILED(hr))
+        return false;
+
+    IBViewSB.BufferLocation = IndexResSB->GetGPUVirtualAddress();
+    IBViewSB.Format = DXGI_FORMAT_R32_UINT;
+    IBViewSB.SizeInBytes = iBufferSize;
+
+    /// upload heap 
+    
+    auto uploadHeap = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+
+    // Vertex Buffer
+    hr = device->CreateCommittedResource(&uploadHeap, D3D12_HEAP_FLAG_NONE, &vertexDesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&vertexUploads));
+    if (FAILED(hr))
+        return false;
+
+    uint8_t* memory = nullptr;
+    vertexUploads->Map(0, nullptr, reinterpret_cast<void**>(&memory));
+    std::memcpy(memory, vertLiteVector.data(), vBufferSize);
+    vertexUploads->Unmap(0, nullptr);
+
+    // Index buffer
+    hr = device->CreateCommittedResource(&uploadHeap, D3D12_HEAP_FLAG_NONE, &indexDesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&indexUpload));
+    if (FAILED(hr))
+        return false;
+
+    memory = nullptr;
+    indexUpload->Map(0, nullptr, reinterpret_cast<void**>(&memory));
+    std::memcpy(memory, face.data(), iBufferSize);
+    indexUpload->Unmap(0, nullptr);
+
+    D3D12_RESOURCE_BARRIER postCopyBarriers[2];
+
+    commandList->CopyResource(VertResSB, vertexUploads);
+    postCopyBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(VertResSB, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+    
+    commandList->CopyResource(IndexResSB, indexUpload);
+    postCopyBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(IndexResSB, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+
+    commandList->ResourceBarrier(ARRAYSIZE(postCopyBarriers), postCopyBarriers);
+
+
+    return true;
+}
+
+
 void Mesh::computeDeformFactors(){
 
     std::vector< XMVECTOR > summator(vert.size(), XMVectorZero());

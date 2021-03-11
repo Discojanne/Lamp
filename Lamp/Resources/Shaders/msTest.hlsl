@@ -1,9 +1,5 @@
 
-#define ROOT_SIG "CBV(b0), \
-                  SRV(t0), \
-                  SRV(t1)"
-
-
+//#define ROOT_SIG "CBV(b0)"
 //Texture2D t1 : register(t0);
 //SamplerState s1 : register(s0);
 
@@ -103,60 +99,26 @@ static uint3 cubeIndices[] =
         uint3(20, 23, 21),
 };
 
-struct Vertex
-{
-	float3 pos;
-	int4 boneIndex;
-	float4 boneWeight;
-};
-
-//struct Meshlet
-//{
-//	uint VertCount;
-//	uint VertOffset;
-//	uint PrimCount;
-//	uint PrimOffset;
-//};
-
-StructuredBuffer<Vertex> Vertices       : register(t0);
-StructuredBuffer<int3> PrimitiveIndices : register(t1);
-//StructuredBuffer<Meshlet> Meshlets    : register(t2);
-
-[RootSignature(ROOT_SIG)]
+//[RootSignature(ROOT_SIG)]
 [OutputTopology("triangle")]
-[NumThreads(128, 1, 1)]
+[NumThreads(24, 1, 1)]
 void MSmain(in uint groupThreadId : SV_GroupThreadID,
-    out vertices MSvertex outVerts[128], 
-    out indices uint3 outIndices[43])
+    out vertices MSvertex outVerts[24], 
+    out indices uint3 outIndices[12])
 {
-	const uint numVertices = 78;
-	const uint numPrimitives = 32;
+    const uint numVertices = 24;
+    const uint numPrimitives = 12;
 
-	SetMeshOutputCounts(numVertices, numPrimitives);
+    SetMeshOutputCounts(numVertices, numPrimitives);
 
-	float4x4 T = 0;
-    
-	if (groupThreadId < numVertices)
-	{
-        //float4 pos = cubeVertices[groupThreadId];
-		T = 0;
-		for (int i = 0; i < 4; i++)
-			T += boneMatrix[Vertices[groupThreadId].boneIndex[i]] * Vertices[groupThreadId].boneWeight[i];
-        
-		float3 tmpPos = mul(float4(Vertices[groupThreadId].pos, 1.0f), (float4x3) T);
-        
-		tmpPos.x += 5.0f;
-        
-		outVerts[groupThreadId].pos = TransformPos(float4(tmpPos, 1.0f));
+    if (groupThreadId < numVertices)
+    {
+        float4 pos = cubeVertices[groupThreadId];
+        outVerts[groupThreadId].pos = TransformPos(pos);
 		//outVerts[groupThreadId].texCoord = cubeCoords[groupThreadId];
 		//outVerts[groupThreadId].normal = float3(1.0f, 0.0f, 0.0f);
 		//outVerts[groupThreadId].lightDir = float3(1.0f, 0.0f, 0.0f);
 	}
 
-	if (groupThreadId < numPrimitives)
-	{
-		outIndices[groupThreadId] = PrimitiveIndices[groupThreadId];
-	}
-    
-		
+    outIndices[groupThreadId] = cubeIndices[groupThreadId];
 }

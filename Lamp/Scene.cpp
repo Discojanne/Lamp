@@ -206,7 +206,7 @@ bool Scene::CreateVertexBuffers(ID3D12Device6* device, ID3D12GraphicsCommandList
     currentMesh.indexBufferView.Format = DXGI_FORMAT_R32_UINT; // 32-bit unsigned integer (this is what a dword is, double word, a word is 2 bytes)
     currentMesh.indexBufferView.SizeInBytes = iBufferSize;
 
-    
+    currentMesh.UploadGpuResources(device, commandList);
 
     return true;
 
@@ -262,6 +262,8 @@ void Scene::testAnimationFunc(int animFrame)
 
 void Scene::ReleaseUploadHeaps()
 {
-    currentMesh.vBufferUploadHeap->Release();
-    currentMesh.iBufferUploadHeap->Release();
+    //currentMesh.vBufferUploadHeap->Release();
+    //currentMesh.iBufferUploadHeap->Release();
+    currentMesh.vertexUploads->Release();
+    currentMesh.indexUpload->Release();
 }

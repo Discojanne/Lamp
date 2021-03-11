@@ -110,7 +110,17 @@ public:
     ID3D12Resource* vBufferUploadHeap;
     ID3D12Resource* iBufferUploadHeap;
 
+    // structured buffer vertices
+    ID3D12Resource* VertResSB;
+    ID3D12Resource* IndexResSB;
+    ID3D12Resource* vertexUploads;
+    ID3D12Resource* indexUpload;
+    D3D12_VERTEX_BUFFER_VIEW  VBViewsSB;
+    D3D12_INDEX_BUFFER_VIEW   IBViewSB;
+        
     void setUniformRig(int nbone);
+
+    bool UploadGpuResources(ID3D12Device* device, ID3D12GraphicsCommandList* commandList);
 
     void computeDeformFactors();
     void computeTangentDirs();
@@ -128,3 +138,4 @@ public:
 };
 
 #endif
+

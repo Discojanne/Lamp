@@ -217,7 +217,7 @@ bool Direct3D12::UpdatePipeline()
     m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST); // set the primitive topology
     
     m_commandList->SetGraphicsRootSignature(m_rootSignature); // set the root signature
-
+    
     // set the root descriptor table 0 to the constant buffer descriptor heap
     
 
@@ -240,8 +240,14 @@ bool Direct3D12::UpdatePipeline()
 
 
     // Mesh shader
+    m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // this is possibly unnecessary
+    m_commandList->SetGraphicsRootSignature(m_rootSignatureMS);
+    m_commandList->SetGraphicsRootConstantBufferView(0, m_constantBufferUploadHeaps[m_frameIndex]->GetGPUVirtualAddress());
+    m_commandList->SetGraphicsRootShaderResourceView(1, m_scene->currentMesh.VertResSB->GetGPUVirtualAddress());
+    m_commandList->SetGraphicsRootShaderResourceView(2, m_scene->currentMesh.IndexResSB->GetGPUVirtualAddress());
+
     m_commandList->SetPipelineState(m_MSpipelineStateObject);
-    m_commandList->DispatchMesh(24, 1, 1);
+    m_commandList->DispatchMesh(1, 1, 1);
 
 
     // mesh subset stuff?
@@ -772,7 +778,7 @@ bool Direct3D12::InitShaderLayoutGPS()
     m_shaderCompiler->init();
 
 
-    // compile vertex shader
+    /// compile vertex shader
     IDxcBlob* vertexShader; // d3d blob for holding vertex shader bytecode
 
     DXILShaderCompiler::Desc desc;
@@ -794,7 +800,7 @@ bool Direct3D12::InitShaderLayoutGPS()
     vertexShaderBytecode.BytecodeLength = vertexShader->GetBufferSize();
     vertexShaderBytecode.pShaderBytecode = vertexShader->GetBufferPointer();
 
-    // compile mesh shader
+    /// compile mesh shader
     IDxcBlob* meshShader;
 
     desc.source = nullptr;
@@ -815,7 +821,7 @@ bool Direct3D12::InitShaderLayoutGPS()
     meshShaderBytecode.BytecodeLength = meshShader->GetBufferSize();
     meshShaderBytecode.pShaderBytecode = meshShader->GetBufferPointer();
 
-    // compile pixel shader
+    /// compile pixel shader
     IDxcBlob* pixelShader;
 
     desc.source = nullptr;
@@ -836,7 +842,7 @@ bool Direct3D12::InitShaderLayoutGPS()
     pixelShaderBytecode.BytecodeLength = pixelShader->GetBufferSize();
     pixelShaderBytecode.pShaderBytecode = pixelShader->GetBufferPointer();
 
-    // create input layout
+    /// create input layout
     D3D12_INPUT_ELEMENT_DESC inputLayout[] =
     {
         { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
@@ -866,10 +872,9 @@ bool Direct3D12::InitShaderLayoutGPS()
     inputLayoutDesc.NumElements = sizeof(inputLayout) / sizeof(D3D12_INPUT_ELEMENT_DESC);
     inputLayoutDesc.pInputElementDescs = inputLayout;
 
-
+    /// Create PSO for vs ps 
     DXGI_SAMPLE_DESC sampleDesc = {};
     sampleDesc.Count = 1; // multisample count (no multisampling, so we just put 1, since we still need 1 sample)
-
 
     D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {}; // a structure to define a pso
     psoDesc.InputLayout = inputLayoutDesc; // the structure describing our input layout
@@ -877,7 +882,7 @@ bool Direct3D12::InitShaderLayoutGPS()
     psoDesc.VS = vertexShaderBytecode; // structure describing where to find the vertex shader bytecode and how large it is
     psoDesc.PS = pixelShaderBytecode; // same as VS but for pixel shader
     //psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT; // type of topology we are drawing
-    psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE; // type of topology we are drawing
+    psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE; // type of topology we are drawing
     psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM; // format of the render target
     psoDesc.SampleDesc = sampleDesc; // must be the same sample description as the swapchain and depth/stencil buffer
     psoDesc.SampleMask = 0xffffffff; // sample mask has to do with multi-sampling. 0xffffffff means point sampling is done
@@ -888,12 +893,17 @@ bool Direct3D12::InitShaderLayoutGPS()
     psoDesc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
     psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_FRONT;
 
-    ///
-
+    /// Create PSO for ms ps 
+    
+    hr = m_device->CreateRootSignature(0, meshShader->GetBufferPointer(), meshShader->GetBufferSize(), IID_PPV_ARGS(&m_rootSignatureMS));
+    if (FAILED(hr))
+        return false;
+    
     D3DX12_MESH_SHADER_PIPELINE_STATE_DESC MSpsoDesc = {};
-    MSpsoDesc.pRootSignature = m_rootSignature;
+    MSpsoDesc.pRootSignature = m_rootSignatureMS;
     MSpsoDesc.MS = meshShaderBytecode;
     MSpsoDesc.PS = pixelShaderBytecode;
+    MSpsoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
     MSpsoDesc.NumRenderTargets = 1;
     MSpsoDesc.RTVFormats[0] = m_renderTargets[0]->GetDesc().Format;
     MSpsoDesc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
@@ -915,7 +925,6 @@ bool Direct3D12::InitShaderLayoutGPS()
     {
         return false;
     }
-    ///
 
     // create the pso
     hr = m_device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineStateObject));
@@ -954,33 +963,7 @@ bool Direct3D12::LoadModels()
 
     WaitForNextFrameBuffers(m_swapChain->GetCurrentBackBufferIndex());
 
-    //m_scene->ReleaseUploadHeaps();
-
-    return true;
-}
-
-bool Direct3D12::InitMeshshader()
-{
-
-    //D3DX12_MESH_SHADER_PIPELINE_STATE_DESC psoDesc = {};
-    //psoDesc.pRootSignature = m_rootSignature;
-    //psoDesc.MS = { meshShader.data, meshShader.size };
-    //psoDesc.PS = { pixelShader.data, pixelShader.size };
-    //psoDesc.NumRenderTargets = 1;
-    //psoDesc.RTVFormats[0] = m_renderTargets[0]->GetDesc().Format;
-    //psoDesc.DSVFormat = m_depthStencil->GetDesc().Format;
-    //psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);    // CW front; cull back
-    //psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);         // Opaque
-    //psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT); // Less-equal depth test w/ writes; no stencil
-    //psoDesc.SampleMask = UINT_MAX;
-    //psoDesc.SampleDesc = DefaultSampleDesc();
-
-
-
-    
-   
-
-
+    m_scene->ReleaseUploadHeaps();
 
     return true;
 }

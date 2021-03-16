@@ -238,16 +238,18 @@ bool Direct3D12::UpdatePipeline()
     m_commandList->IASetIndexBuffer(&m_scene->currentMesh.indexBufferView);
     m_commandList->DrawIndexedInstanced(m_scene->currentMesh.face.size()*3, 1, 0, 0, 0);
 
-
     // Mesh shader
-    m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // this is possibly unnecessary
+    
+    m_commandList->SetPipelineState(m_MSpipelineStateObject);
     m_commandList->SetGraphicsRootSignature(m_rootSignatureMS);
     m_commandList->SetGraphicsRootConstantBufferView(0, m_constantBufferUploadHeaps[m_frameIndex]->GetGPUVirtualAddress());
-    m_commandList->SetGraphicsRootShaderResourceView(1, m_scene->currentMesh.VertResSB->GetGPUVirtualAddress());
-    m_commandList->SetGraphicsRootShaderResourceView(2, m_scene->currentMesh.IndexResSB->GetGPUVirtualAddress());
-
-    m_commandList->SetPipelineState(m_MSpipelineStateObject);
-    m_commandList->DispatchMesh(1, 1, 1);
+    m_commandList->SetGraphicsRootShaderResourceView(1, m_scene->currentMesh.MeshletResSB->GetGPUVirtualAddress());
+    m_commandList->SetGraphicsRootShaderResourceView(2, m_scene->currentMesh.VertResSB->GetGPUVirtualAddress());
+    m_commandList->SetGraphicsRootShaderResourceView(3, m_scene->currentMesh.IndexResSB->GetGPUVirtualAddress());
+    
+    m_commandList->DispatchMesh(m_scene->currentMesh.meshletVector.size(), 1, 1);
+    
+    
 
 
     // mesh subset stuff?

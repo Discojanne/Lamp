@@ -88,6 +88,17 @@ public:
 
 };
 
+class Meshlet {
+public:
+    Meshlet(unsigned int vCount, unsigned int vOffset, unsigned int pCount, unsigned int pOffset)
+    : VertCount(vCount), VertOffset(vOffset), PrimCount(pCount), PrimOffset(pOffset)
+    {}
+    unsigned int VertCount;
+    unsigned int VertOffset;
+    unsigned int PrimCount;
+    unsigned int PrimOffset;
+};
+
 class Mesh{
 public:
     bool isEmpty() const;
@@ -98,6 +109,7 @@ public:
 
     std::vector<Vert> vert;
     std::vector<Face> face;
+    std::vector<Meshlet> meshletVector;
 
     ID3D12Resource* vertexBuffer; // a default buffer in GPU memory that we will load vertex data for our triangle into
     D3D12_VERTEX_BUFFER_VIEW vertexBufferView; // a structure containing a pointer to the vertex data in gpu memory
@@ -113,10 +125,12 @@ public:
     // structured buffer vertices
     ID3D12Resource* VertResSB;
     ID3D12Resource* IndexResSB;
+    ID3D12Resource* MeshletResSB;
+
     ID3D12Resource* vertexUploads;
     ID3D12Resource* indexUpload;
-    D3D12_VERTEX_BUFFER_VIEW  VBViewsSB;
-    D3D12_INDEX_BUFFER_VIEW   IBViewSB;
+    ID3D12Resource* meshletUpload;
+
         
     void setUniformRig(int nbone);
 

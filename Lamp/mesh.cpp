@@ -53,38 +53,36 @@ bool Mesh::UploadGpuResources(ID3D12Device* device, ID3D12GraphicsCommandList* c
     
 
     /// default heap 
-    auto defaultHeap = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+    auto defaultHeapDesc = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 
     // Vertex buffer
     int nrOfVertices = vertLiteVector.size();
     int vBufferSize = sizeof(VertLite) * nrOfVertices;
     auto vertexDesc = CD3DX12_RESOURCE_DESC::Buffer(vBufferSize);
-    hr = device->CreateCommittedResource(&defaultHeap, D3D12_HEAP_FLAG_NONE, &vertexDesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&VertResSB));
+    hr = device->CreateCommittedResource(&defaultHeapDesc, D3D12_HEAP_FLAG_NONE, &vertexDesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&VertResSB));
     if (FAILED(hr))
         return false;
-
-    VBViewsSB.BufferLocation = VertResSB->GetGPUVirtualAddress();
-    VBViewsSB.SizeInBytes = sizeof(VertLite);
-    VBViewsSB.StrideInBytes = vBufferSize;
 
     // Index buffer
     int nrOfIndices = face.size() * 3;
     int iBufferSize = sizeof(int) * nrOfIndices;
     auto indexDesc = CD3DX12_RESOURCE_DESC::Buffer(iBufferSize);
-    hr = device->CreateCommittedResource(&defaultHeap, D3D12_HEAP_FLAG_NONE, &indexDesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&IndexResSB));
+    hr = device->CreateCommittedResource(&defaultHeapDesc, D3D12_HEAP_FLAG_NONE, &indexDesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&IndexResSB));
     if (FAILED(hr))
         return false;
 
-    IBViewSB.BufferLocation = IndexResSB->GetGPUVirtualAddress();
-    IBViewSB.Format = DXGI_FORMAT_R32_UINT;
-    IBViewSB.SizeInBytes = iBufferSize;
+    // Meshlet buffer
+    auto meshletDesc = CD3DX12_RESOURCE_DESC::Buffer(meshletVector.size() * sizeof(Meshlet));
+    hr = device->CreateCommittedResource(&defaultHeapDesc, D3D12_HEAP_FLAG_NONE, &meshletDesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&MeshletResSB));
+    if (FAILED(hr))
+        return false;
 
     /// upload heap 
     
-    auto uploadHeap = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+    auto uploadHeapDesc = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
 
     // Vertex Buffer
-    hr = device->CreateCommittedResource(&uploadHeap, D3D12_HEAP_FLAG_NONE, &vertexDesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&vertexUploads));
+    hr = device->CreateCommittedResource(&uploadHeapDesc, D3D12_HEAP_FLAG_NONE, &vertexDesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&vertexUploads));
     if (FAILED(hr))
         return false;
 
@@ -94,7 +92,7 @@ bool Mesh::UploadGpuResources(ID3D12Device* device, ID3D12GraphicsCommandList* c
     vertexUploads->Unmap(0, nullptr);
 
     // Index buffer
-    hr = device->CreateCommittedResource(&uploadHeap, D3D12_HEAP_FLAG_NONE, &indexDesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&indexUpload));
+    hr = device->CreateCommittedResource(&uploadHeapDesc, D3D12_HEAP_FLAG_NONE, &indexDesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&indexUpload));
     if (FAILED(hr))
         return false;
 
@@ -103,13 +101,26 @@ bool Mesh::UploadGpuResources(ID3D12Device* device, ID3D12GraphicsCommandList* c
     std::memcpy(memory, face.data(), iBufferSize);
     indexUpload->Unmap(0, nullptr);
 
-    D3D12_RESOURCE_BARRIER postCopyBarriers[2];
+    // Meshlet buffer
+    hr = device->CreateCommittedResource(&uploadHeapDesc, D3D12_HEAP_FLAG_NONE, &meshletDesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&meshletUpload));
+    if (FAILED(hr))
+        return false;
+
+    memory = nullptr;
+    meshletUpload->Map(0, nullptr, reinterpret_cast<void**>(&memory));
+    std::memcpy(memory, meshletVector.data(), meshletVector.size() * sizeof(Meshlet));
+    meshletUpload->Unmap(0, nullptr);
+
+    D3D12_RESOURCE_BARRIER postCopyBarriers[3];
 
     commandList->CopyResource(VertResSB, vertexUploads);
     postCopyBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(VertResSB, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
     
     commandList->CopyResource(IndexResSB, indexUpload);
     postCopyBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(IndexResSB, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+
+    commandList->CopyResource(MeshletResSB, meshletUpload);
+    postCopyBarriers[2] = CD3DX12_RESOURCE_BARRIER::Transition(MeshletResSB, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 
     commandList->ResourceBarrier(ARRAYSIZE(postCopyBarriers), postCopyBarriers);
 

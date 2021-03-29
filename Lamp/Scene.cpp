@@ -101,7 +101,7 @@ bool Scene::CreateVertexBuffers(ID3D12Device6* device, ID3D12GraphicsCommandList
         currentMesh.vertLiteVector.push_back(tmpVL);
     }
 
-    currentMesh.meshletVector.push_back(Meshlet(78,0,32,0));
+    //currentMesh.meshletVector.push_back(Meshlet2(78,0,32,0));
 
     ///
 

@@ -35,8 +35,6 @@
 
 
 
-
-
 const int MAX_TOTAL_BONES = 35;
 
 
@@ -126,6 +124,54 @@ bool Mesh::UploadGpuResources(ID3D12Device* device, ID3D12GraphicsCommandList* c
 
 
     return true;
+}
+
+void Mesh::GenerateMeshlets()
+{
+    HRESULT hr;
+
+    
+   /* Subset s;
+    s.Count = 1;
+    s.Offset = 0;
+    subsets.push_back(s);*/
+
+    uint32_t maxVerts = 64;
+    uint32_t maxPrims = 126;
+    
+    int nrOfIndices = face.size() * 3;
+    uint32_t tmpIndices[96];// = new uint32_t[nrOfIndices];
+    for (size_t i = 0; i < face.size(); i++)
+    {
+        tmpIndices[i * 3 + 0] = face[i].index[0];
+        tmpIndices[i * 3 + 1] = face[i].index[1];
+        tmpIndices[i * 3 + 2] = face[i].index[2];
+    }
+    
+    uint32_t nrOfVertices = vert.size();
+    DirectX::XMFLOAT3 tmpPositions[78];// = new DirectX::XMFLOAT3[nrOfVertices];
+    for (size_t i = 0; i < nrOfVertices; i++)
+    {
+        tmpPositions[i] = vert[i].pos;
+    }
+
+    hr = ComputeMeshlets(
+        maxVerts,                       // max verts
+        maxPrims,                       // max prims
+        tmpIndices,                     // indices
+        face.size(),                    // nFaces
+        tmpPositions,                   // positions
+        nrOfVertices,                   // nVerts
+        subsets,                        // subset
+        meshletVector,                  // meshlets
+        uniqueVertexIndices,            // uniqueVertexIndices
+        primitiveIndices                // primitiveIndices
+    );
+
+    if (FAILED(hr))
+    {
+        int by = 0;
+    }
 }
 
 

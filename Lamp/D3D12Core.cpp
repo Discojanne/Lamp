@@ -949,6 +949,7 @@ bool Direct3D12::LoadModels()
         return false;
 
     //m_scene->testAnimationFunc(6);
+    m_scene->currentMesh.GenerateMeshlets();
 
     m_scene->CreateVertexBuffers(m_device, m_commandList);
 

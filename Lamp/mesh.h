@@ -31,6 +31,7 @@
 
 #include <vector>
 #include "ExtraMath.h"
+#include <D3D12MeshletGenerator.h>
 
 #include "d3dx12.h"
 
@@ -88,16 +89,16 @@ public:
 
 };
 
-class Meshlet {
-public:
-    Meshlet(unsigned int vCount, unsigned int vOffset, unsigned int pCount, unsigned int pOffset)
-    : VertCount(vCount), VertOffset(vOffset), PrimCount(pCount), PrimOffset(pOffset)
-    {}
-    unsigned int VertCount;
-    unsigned int VertOffset;
-    unsigned int PrimCount;
-    unsigned int PrimOffset;
-};
+//class Meshlet2 {
+//public:
+//    Meshlet2(unsigned int vCount, unsigned int vOffset, unsigned int pCount, unsigned int pOffset)
+//    : VertCount(vCount), VertOffset(vOffset), PrimCount(pCount), PrimOffset(pOffset)
+//    {}
+//    unsigned int VertCount;
+//    unsigned int VertOffset;
+//    unsigned int PrimCount;
+//    unsigned int PrimOffset;
+//};
 
 class Mesh{
 public:
@@ -109,7 +110,11 @@ public:
 
     std::vector<Vert> vert;
     std::vector<Face> face;
-    std::vector<Meshlet> meshletVector;
+    //std::vector<Meshlet2> meshletVector;
+    std::vector<Subset> subsets;
+    std::vector<Meshlet> meshletVector; // SOON™
+    std::vector<uint8_t> uniqueVertexIndices;
+    std::vector<PackedTriangle> primitiveIndices;
 
     ID3D12Resource* vertexBuffer; // a default buffer in GPU memory that we will load vertex data for our triangle into
     D3D12_VERTEX_BUFFER_VIEW vertexBufferView; // a structure containing a pointer to the vertex data in gpu memory
@@ -135,6 +140,7 @@ public:
     void setUniformRig(int nbone);
 
     bool UploadGpuResources(ID3D12Device* device, ID3D12GraphicsCommandList* commandList);
+    void GenerateMeshlets();
 
     void computeDeformFactors();
     void computeTangentDirs();

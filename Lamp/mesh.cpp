@@ -40,6 +40,119 @@ const int MAX_TOTAL_BONES = 35;
 
 Mesh::Mesh(){}
 
+Mesh::~Mesh()
+{
+    Cleanup();
+}
+
+
+void Mesh::ReleaseUploadHeaps()
+{
+    //currentMesh.vBufferUploadHeap->Release();
+    //currentMesh.iBufferUploadHeap->Release();
+
+    if (vBufferUploadHeap)
+    {
+        vBufferUploadHeap->Release();
+        vBufferUploadHeap = nullptr;
+    }
+    if (iBufferUploadHeap)
+    {
+        iBufferUploadHeap->Release();
+        iBufferUploadHeap = nullptr;
+    }
+
+    // Mesh shader resources
+    if (vertexUploads)
+    {
+        vertexUploads->Release();
+        vertexUploads = nullptr;
+    }
+    if (indexUpload)
+    {
+        indexUpload->Release();
+        indexUpload = nullptr;
+    }
+    if (meshletUpload)
+    {
+        meshletUpload->Release();
+        meshletUpload = nullptr;
+    }
+    if (uniqueUpload)
+    {
+        uniqueUpload->Release();
+        uniqueUpload = nullptr;
+    }
+}
+
+void Mesh::Cleanup()
+{
+
+    if (vertexBuffer)
+    {
+        vertexBuffer->Release();
+        vertexBuffer = nullptr;
+    }
+    if (indexBuffer)
+    {
+        indexBuffer->Release();
+        indexBuffer = nullptr;
+    }
+
+    if (vBufferUploadHeap)
+    {
+        vBufferUploadHeap->Release();
+        vBufferUploadHeap = nullptr;
+    }
+    if (iBufferUploadHeap)
+    {
+        iBufferUploadHeap->Release();
+        iBufferUploadHeap = nullptr;
+    }
+
+    // mesh shader resources
+    if (VertResSB)
+    {
+        VertResSB->Release();
+        VertResSB = nullptr;
+    }
+    if (IndexResSB)
+    {
+        IndexResSB->Release();
+        IndexResSB = nullptr;
+    }
+    if (MeshletResSB)
+    {
+        MeshletResSB->Release();
+        MeshletResSB = nullptr;
+    }
+    if (UniqueResSB)
+    {
+        UniqueResSB->Release();
+        UniqueResSB = nullptr;
+    }
+
+    if (vertexUploads)
+    {
+        vertexUploads->Release();
+        vertexUploads = nullptr;
+    }
+    if (indexUpload)
+    {
+        indexUpload->Release();
+        indexUpload = nullptr;
+    }
+    if (meshletUpload)
+    {
+        meshletUpload->Release();
+        meshletUpload = nullptr;
+    }
+    if (uniqueUpload)
+    {
+        uniqueUpload->Release();
+        uniqueUpload = nullptr;
+    }
+}
 
 bool Mesh::UploadGpuResources(ID3D12Device* device, ID3D12GraphicsCommandList* commandList)
 {
@@ -61,9 +174,8 @@ bool Mesh::UploadGpuResources(ID3D12Device* device, ID3D12GraphicsCommandList* c
     if (FAILED(hr))
         return false;
 
-    // Index buffer
-    int nrOfIndices = face.size() * 3;
-    int iBufferSize = sizeof(int) * nrOfIndices;
+    // Index buffer TODO: -> PrimitiveIndices
+    int iBufferSize = sizeof(PackedTriangle) * primitiveIndices.size();
     auto indexDesc = CD3DX12_RESOURCE_DESC::Buffer(iBufferSize);
     hr = device->CreateCommittedResource(&defaultHeapDesc, D3D12_HEAP_FLAG_NONE, &indexDesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&IndexResSB));
     if (FAILED(hr))
@@ -72,6 +184,12 @@ bool Mesh::UploadGpuResources(ID3D12Device* device, ID3D12GraphicsCommandList* c
     // Meshlet buffer
     auto meshletDesc = CD3DX12_RESOURCE_DESC::Buffer(meshletVector.size() * sizeof(Meshlet));
     hr = device->CreateCommittedResource(&defaultHeapDesc, D3D12_HEAP_FLAG_NONE, &meshletDesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&MeshletResSB));
+    if (FAILED(hr))
+        return false;
+
+    // UniqueVertex buffer
+    auto uniqueIndexDesc = CD3DX12_RESOURCE_DESC::Buffer(uniqueVertexIndices.size());
+    hr = device->CreateCommittedResource(&defaultHeapDesc, D3D12_HEAP_FLAG_NONE, &uniqueIndexDesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&UniqueResSB));
     if (FAILED(hr))
         return false;
 
@@ -89,6 +207,7 @@ bool Mesh::UploadGpuResources(ID3D12Device* device, ID3D12GraphicsCommandList* c
     std::memcpy(memory, vertLiteVector.data(), vBufferSize);
     vertexUploads->Unmap(0, nullptr);
 
+
     // Index buffer
     hr = device->CreateCommittedResource(&uploadHeapDesc, D3D12_HEAP_FLAG_NONE, &indexDesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&indexUpload));
     if (FAILED(hr))
@@ -96,8 +215,9 @@ bool Mesh::UploadGpuResources(ID3D12Device* device, ID3D12GraphicsCommandList* c
 
     memory = nullptr;
     indexUpload->Map(0, nullptr, reinterpret_cast<void**>(&memory));
-    std::memcpy(memory, face.data(), iBufferSize);
+    std::memcpy(memory, primitiveIndices.data(), iBufferSize);
     indexUpload->Unmap(0, nullptr);
+
 
     // Meshlet buffer
     hr = device->CreateCommittedResource(&uploadHeapDesc, D3D12_HEAP_FLAG_NONE, &meshletDesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&meshletUpload));
@@ -109,7 +229,19 @@ bool Mesh::UploadGpuResources(ID3D12Device* device, ID3D12GraphicsCommandList* c
     std::memcpy(memory, meshletVector.data(), meshletVector.size() * sizeof(Meshlet));
     meshletUpload->Unmap(0, nullptr);
 
-    D3D12_RESOURCE_BARRIER postCopyBarriers[3];
+
+    // UniqueVertex buffer
+    hr = device->CreateCommittedResource(&uploadHeapDesc, D3D12_HEAP_FLAG_NONE, &uniqueIndexDesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&uniqueUpload));
+    if (FAILED(hr))
+        return false;
+    
+    memory = nullptr;
+    uniqueUpload->Map(0, nullptr, reinterpret_cast<void**>(&memory));
+    std::memcpy(memory, uniqueVertexIndices.data(), uniqueVertexIndices.size());
+    uniqueUpload->Unmap(0, nullptr);
+
+
+    D3D12_RESOURCE_BARRIER postCopyBarriers[4];
 
     commandList->CopyResource(VertResSB, vertexUploads);
     postCopyBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(VertResSB, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
@@ -119,6 +251,9 @@ bool Mesh::UploadGpuResources(ID3D12Device* device, ID3D12GraphicsCommandList* c
 
     commandList->CopyResource(MeshletResSB, meshletUpload);
     postCopyBarriers[2] = CD3DX12_RESOURCE_BARRIER::Transition(MeshletResSB, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+
+    commandList->CopyResource(UniqueResSB, uniqueUpload);
+    postCopyBarriers[3] = CD3DX12_RESOURCE_BARRIER::Transition(UniqueResSB, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 
     commandList->ResourceBarrier(ARRAYSIZE(postCopyBarriers), postCopyBarriers);
 
@@ -137,7 +272,7 @@ void Mesh::GenerateMeshlets()
     subsets.push_back(s);*/
 
     uint32_t maxVerts = 64;
-    uint32_t maxPrims = 126;
+    uint32_t maxPrims = 2;
     
     int nrOfIndices = face.size() * 3;
     uint32_t tmpIndices[96];// = new uint32_t[nrOfIndices];
@@ -154,12 +289,12 @@ void Mesh::GenerateMeshlets()
     {
         tmpPositions[i] = vert[i].pos;
     }
-
+    sizeof(PackedTriangle);
     hr = ComputeMeshlets(
         maxVerts,                       // max verts
         maxPrims,                       // max prims
         tmpIndices,                     // indices
-        face.size(),                    // nFaces
+        face.size()*3,                    // nFaces
         tmpPositions,                   // positions
         nrOfVertices,                   // nVerts
         subsets,                        // subset

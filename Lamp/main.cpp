@@ -23,6 +23,9 @@ struct Timer
 	long long lastSecond = 0;
 	double frameDelta = 0;
 	int fps = 0;
+	float fpsSum = 0;
+	int iterator = 0;
+	float fpstracker = 0;
 
 	Timer()
 	{
@@ -48,8 +51,18 @@ struct Timer
 		LARGE_INTEGER li;
 		QueryPerformanceCounter(&li);
 		frameDelta = double(li.QuadPart - lastFrameTime) / timerFrequency;
-		if (frameDelta > 0)
-			fps = 1 / frameDelta;
+		if (frameDelta > 0) {
+			fpstracker += frameDelta;
+			iterator++;
+			fpsSum += 1 / frameDelta;
+			if (fpstracker > 0.5f)
+			{
+				fps = fpsSum / iterator;
+				fpstracker = 0;
+				iterator = 0;
+				fpsSum = 0;
+			}
+		}
 		lastFrameTime = li.QuadPart;
 		return frameDelta;
 	}

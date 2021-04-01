@@ -1,6 +1,7 @@
 #include "Scene.h"
 #include "ioSMD.h"
 #include "d3dx12.h"
+#include "InputSystem.h"
 
 Scene::Scene()
 {
@@ -8,8 +9,6 @@ Scene::Scene()
 
 Scene::~Scene()
 {
-    currentMesh.vertexBuffer->Release();
-    currentMesh.indexBuffer->Release();
 }
 
 bool Scene::LoadMesh(std::string filename)
@@ -197,12 +196,12 @@ bool Scene::CreateVertexBuffers(ID3D12Device6* device, ID3D12GraphicsCommandList
     commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(currentMesh.indexBuffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_INDEX_BUFFER));
 
     // create a vertex buffer view for the triangle. We get the GPU memory address to the vertex pointer using the GetGPUVirtualAddress() method
-    currentMesh.vertexBufferView.BufferLocation = currentMesh.vBufferUploadHeap->GetGPUVirtualAddress(); // temporärt upload heap för memcopy medans cpu animering
+    currentMesh.vertexBufferView.BufferLocation = currentMesh.vertexBuffer->GetGPUVirtualAddress(); // temporärt upload heap för memcopy medans cpu animering
     currentMesh.vertexBufferView.StrideInBytes = sizeof(VertLite);
     currentMesh.vertexBufferView.SizeInBytes = vBufferSize;
 
     // create a vertex buffer view for the triangle.We get the GPU memory address to the vertex pointer using the GetGPUVirtualAddress() method
-    currentMesh.indexBufferView.BufferLocation = currentMesh.iBufferUploadHeap->GetGPUVirtualAddress();
+    currentMesh.indexBufferView.BufferLocation = currentMesh.indexBuffer->GetGPUVirtualAddress();
     currentMesh.indexBufferView.Format = DXGI_FORMAT_R32_UINT; // 32-bit unsigned integer (this is what a dword is, double word, a word is 2 bytes)
     currentMesh.indexBufferView.SizeInBytes = iBufferSize;
 
@@ -210,6 +209,22 @@ bool Scene::CreateVertexBuffers(ID3D12Device6* device, ID3D12GraphicsCommandList
 
     return true;
 
+}
+
+bool Scene::Init()
+{
+    InputSystem::get()->addListener(this);
+
+    return true;
+}
+
+void Scene::Update(float dt)
+{
+    m_dt = dt;
+    InputSystem::get()->update();
+
+    cam.Update(dt);
+    cam.UpdateCube(dt);
 }
 
 void Scene::testAnimationFunc(int animFrame)
@@ -260,10 +275,22 @@ void Scene::testAnimationFunc(int animFrame)
 
 }
 
-void Scene::ReleaseUploadHeaps()
+void Scene::onKeyDown(int key)
 {
-    //currentMesh.vBufferUploadHeap->Release();
-    //currentMesh.iBufferUploadHeap->Release();
-    currentMesh.vertexUploads->Release();
-    currentMesh.indexUpload->Release();
+    if (key == 'W')
+    {
+        cam.m_cameraPosition.z += 15 * m_dt;
+    }
+    else if (key == 'S')
+    {
+        cam.m_cameraPosition.z -= 15 * m_dt;
+    }
+}
+
+void Scene::onKeyUp(int key)
+{
+    if (key == 'R')
+    {
+        cam.m_cameraPosition.z = -8.0f;
+    }
 }

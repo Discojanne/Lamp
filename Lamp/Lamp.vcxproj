@@ -149,6 +149,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="InputSystem.cpp" />
     <ClCompile Include="ioSMD.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="ExtraMath.cpp" />
@@ -164,6 +165,8 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="d3dx12.h" />
+    <ClInclude Include="InputListener.h" />
+    <ClInclude Include="InputSystem.h" />
     <ClInclude Include="ioSMD.h" />
     <ClInclude Include="ExtraMath.h" />
     <ClInclude Include="mesh.h" />

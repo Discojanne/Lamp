@@ -11,13 +11,16 @@ public:
 
 	void BuildCamMatrices(int width, int height);
 	DirectX::XMMATRIX GenerateWVP(DirectX::XMMATRIX worldMatrixOfObject = DirectX::XMMatrixIdentity());
+	void UpdateCube(float dt);
 	void Update(float dt);
+
+	DirectX::XMFLOAT4 m_cameraPosition; // this is our cameras position vector
 private:
 
 	DirectX::XMFLOAT4X4 m_cameraProjMat; // this will store our projection matrix
 	DirectX::XMFLOAT4X4 m_cameraViewMat; // this will store our view matrix
 
-	DirectX::XMFLOAT4 m_cameraPosition; // this is our cameras position vector
+	
 	DirectX::XMFLOAT4 m_cameraTarget; // a vector describing the point in space our camera is looking at
 	DirectX::XMFLOAT4 m_cameraUp; // the worlds up vector
 

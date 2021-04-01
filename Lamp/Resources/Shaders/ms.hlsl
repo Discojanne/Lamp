@@ -2,7 +2,8 @@
 #define ROOT_SIG "CBV(b0), \
                   SRV(t0), \
                   SRV(t1), \
-                  SRV(t2)"
+                  SRV(t2), \
+                  SRV(t3)"
 
 
 //Texture2D t1 : register(t0);
@@ -17,6 +18,7 @@ cbuffer ConstantBufferTest : register(b0)
 struct VertexOut
 {
 	float4 pos : SV_POSITION;
+	float4 color : COLOR0;
 	//float2 texCoord : TEXCOORD;
 	//float3 normal : NORMAL;
     //   //new stuff
@@ -24,15 +26,6 @@ struct VertexOut
 	//float3 lightDir : LIGHTDIR;
 	//float v_norm_err : ERR;
 };
-
-
-
-float4 TransformPos(float4 v) 
-{
-    return mul(v, wvpMat);
-}
-
-
 
 struct Vertex
 {
@@ -51,7 +44,25 @@ struct Meshlet
 
 StructuredBuffer<Meshlet>	Meshlets			: register(t0);
 StructuredBuffer<Vertex>	Vertices			: register(t1);
-StructuredBuffer<int3>		PrimitiveIndices	: register(t2);
+StructuredBuffer<uint>		PrimitiveIndices	: register(t2);
+ByteAddressBuffer			UniqueVertexIndices : register(t3);
+
+uint3 UnpackPrimitive(uint primitive)
+{
+    // Unpacks a 10 bits per index triangle from a 32-bit uint.
+	return uint3(primitive & 0x3FF, (primitive >> 10) & 0x3FF, (primitive >> 20) & 0x3FF);
+	//return uint3((primitive >> 20) & 0x3FF, (primitive >> 10) & 0x3FF, primitive & 0x3FF); // vände på trianglarna?
+}
+
+uint3 GetPrimitive(Meshlet m, uint index)
+{
+	return UnpackPrimitive(PrimitiveIndices[m.PrimOffset + index]);
+}
+
+float4 TransformPos(float4 v)
+{
+	return mul(v, wvpMat);
+}
 
 float4 Skin(uint vertexID)
 {
@@ -77,15 +88,20 @@ void MSmain(in uint threadID : SV_GroupThreadID, in uint groupID : SV_GroupID,
 	
 	if (threadID < m.PrimCount)
 	{
-		outIndices[threadID] = PrimitiveIndices[threadID + m.PrimOffset];
+		outIndices[threadID] = GetPrimitive(m, threadID);
 	}
 	
 	if (threadID < m.VertCount)
 	{
-		float4 pos = Skin(threadID + m.VertOffset);
+		uint vertexIndex = UniqueVertexIndices.Load((threadID + m.VertOffset) * 4);
+		
+		float4 pos = Skin(vertexIndex);
         
-		pos.x += 50.0f;
-        
+		//pos.x += 50.0f; bridovivel
+        pos.x += 3.0f;
+		
 		outVerts[threadID].pos = TransformPos(pos);
+			outVerts[threadID].color = (int)groupID * float4(1.0f,1.0f,1.0f,1.0f);
+
 	}
 }

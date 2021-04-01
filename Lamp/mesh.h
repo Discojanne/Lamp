@@ -105,6 +105,7 @@ public:
     bool isEmpty() const;
 
     Mesh();
+    ~Mesh();
     // Temporary data type used for only transfering pos and bone info.
     std::vector<VertLite> vertLiteVector;
 
@@ -131,11 +132,15 @@ public:
     ID3D12Resource* VertResSB;
     ID3D12Resource* IndexResSB;
     ID3D12Resource* MeshletResSB;
+    ID3D12Resource* UniqueResSB;
 
     ID3D12Resource* vertexUploads;
     ID3D12Resource* indexUpload;
     ID3D12Resource* meshletUpload;
+    ID3D12Resource* uniqueUpload;
 
+    void ReleaseUploadHeaps();
+    void Cleanup();
         
     void setUniformRig(int nbone);
 

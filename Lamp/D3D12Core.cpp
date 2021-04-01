@@ -103,15 +103,15 @@ bool Direct3D12::InitD3D(HWND hwnd, int width, int height)
     SetViewportSR(width, height);
 
     m_scene->cam.BuildCamMatrices(width, height);
-
+    m_scene->Init();
    
 	return true;
 }
 
 void Direct3D12::Update(double dt)
 {
+    m_scene->Update(dt);
 
-    m_scene->cam.Update(dt);
     m_cbPerObject.wvpMat = DirectX::XMMatrixTranspose(m_scene->cam.GenerateWVP());
 
 
@@ -163,7 +163,7 @@ bool Direct3D12::UpdatePipeline()
 {
 
     HRESULT hr;
-
+    
     // We have to wait for the gpu to finish with the command allocator before we reset it
     WaitForNextFrameBuffers(1 - m_swapChain->GetCurrentBackBufferIndex());
 
@@ -246,6 +246,7 @@ bool Direct3D12::UpdatePipeline()
     m_commandList->SetGraphicsRootShaderResourceView(1, m_scene->currentMesh.MeshletResSB->GetGPUVirtualAddress());
     m_commandList->SetGraphicsRootShaderResourceView(2, m_scene->currentMesh.VertResSB->GetGPUVirtualAddress());
     m_commandList->SetGraphicsRootShaderResourceView(3, m_scene->currentMesh.IndexResSB->GetGPUVirtualAddress());
+    m_commandList->SetGraphicsRootShaderResourceView(4, m_scene->currentMesh.UniqueResSB->GetGPUVirtualAddress());
     
     m_commandList->DispatchMesh(m_scene->currentMesh.meshletVector.size(), 1, 1);
     
@@ -323,7 +324,7 @@ void Direct3D12::Cleanup()
     HRESULT hr;
     Signal();
 
-    delete m_scene;
+    
 
     // wait for the gpu to finish all frames
     for (int i = 0; i < frameBufferCount; ++i)
@@ -339,6 +340,8 @@ void Direct3D12::Cleanup()
     if (SUCCEEDED(m_swapChain->GetFullscreenState(&fs, NULL)))
         m_swapChain->SetFullscreenState(false, NULL);
 
+    m_scene->currentMesh.Cleanup();
+    delete m_scene;
 
     m_rtvDescriptorHeap->Release();
     m_commandList->Release();
@@ -359,6 +362,8 @@ void Direct3D12::Cleanup()
     m_pipelineStateObject->Release();
     m_MSpipelineStateObject->Release();
     m_rootSignature->Release();
+    m_rootSignatureMS->Release();
+
     m_depthStencilBuffer->Release();
     m_dsDescriptorHeap->Release();
 
@@ -966,7 +971,7 @@ bool Direct3D12::LoadModels()
 
     WaitForNextFrameBuffers(m_swapChain->GetCurrentBackBufferIndex());
 
-    m_scene->ReleaseUploadHeaps();
+    m_scene->currentMesh.ReleaseUploadHeaps();
 
     return true;
 }

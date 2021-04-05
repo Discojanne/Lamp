@@ -1,5 +1,5 @@
 #include "mesh.h"
-#include "animation.h"
+#include "animation/animation.h"
 
 #include "ioSMD.h"
 

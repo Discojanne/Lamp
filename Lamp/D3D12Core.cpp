@@ -6,6 +6,8 @@
 #include "CompilerClass.h"
 #include <fstream>
 
+
+
 Direct3D12::Direct3D12()
 {
     m_device = nullptr;
@@ -55,6 +57,8 @@ bool Direct3D12::InitD3D(HWND hwnd, int width, int height)
     debugController->Release();
 #endif
 
+    m_windowHeight = height; m_windowWidth = width;
+
 	HRESULT hr;
 
     if (!InitDevice(hwnd))
@@ -91,7 +95,7 @@ bool Direct3D12::InitD3D(HWND hwnd, int width, int height)
         return false;
    
 
-    if (!InitDepthTesting(width, height))
+    if (!InitDepthTesting())
         return false;
 
    
@@ -100,10 +104,9 @@ bool Direct3D12::InitD3D(HWND hwnd, int width, int height)
         return false;
     
 
-    SetViewportSR(width, height);
+    SetViewportSR();
 
-    m_scene->cam.BuildCamMatrices(width, height);
-    m_scene->Init();
+    m_scene->Init(m_windowWidth, m_windowHeight);
    
 	return true;
 }
@@ -113,9 +116,6 @@ void Direct3D12::Update(double dt)
     m_scene->Update(dt);
 
     m_cbPerObject.wvpMat = DirectX::XMMatrixTranspose(m_scene->cam.GenerateWVP());
-
-
-
 
     static float time = 0.0f;
     time += dt;
@@ -207,6 +207,7 @@ bool Direct3D12::UpdatePipeline()
 
     // Clear the render target by using the ClearRenderTargetView command
     const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
+    //const float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
     m_commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
     m_commandList->ClearDepthStencilView(m_dsDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
@@ -214,7 +215,8 @@ bool Direct3D12::UpdatePipeline()
     m_commandList->RSSetScissorRects(1, &m_scissorRect); // set the scissor rects
     //m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST); // set the primitive topology
     //m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // set the primitive topology
-    m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST); // set the primitive topology
+    m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // set the primitive topology
+    //m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST); // set the primitive topology
     
     m_commandList->SetGraphicsRootSignature(m_rootSignature); // set the root signature
     
@@ -889,7 +891,8 @@ bool Direct3D12::InitShaderLayoutGPS()
     psoDesc.VS = vertexShaderBytecode; // structure describing where to find the vertex shader bytecode and how large it is
     psoDesc.PS = pixelShaderBytecode; // same as VS but for pixel shader
     //psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT; // type of topology we are drawing
-    psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE; // type of topology we are drawing
+    psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE; // type of topology we are drawing
+    //psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE; // type of topology we are drawing
     psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM; // format of the render target
     psoDesc.SampleDesc = sampleDesc; // must be the same sample description as the swapchain and depth/stencil buffer
     psoDesc.SampleMask = 0xffffffff; // sample mask has to do with multi-sampling. 0xffffffff means point sampling is done
@@ -947,10 +950,10 @@ bool Direct3D12::LoadModels()
 {
 
     m_scene = new Scene;
-    if (!m_scene->LoadMesh("cube"))
+    if (!m_scene->LoadMesh(MODELFILENAME))
         return false;
 
-    if (!m_scene->LoadAnimation("ca2"))
+    if (!m_scene->LoadAnimation(ANIMATIONFILENAME))
         return false;
 
     //m_scene->testAnimationFunc(6);
@@ -976,7 +979,7 @@ bool Direct3D12::LoadModels()
     return true;
 }
 
-bool Direct3D12::InitDepthTesting(int width, int height)
+bool Direct3D12::InitDepthTesting()
 {
     HRESULT hr;
 
@@ -1004,7 +1007,7 @@ bool Direct3D12::InitDepthTesting(int width, int height)
     m_device->CreateCommittedResource(
         &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
         D3D12_HEAP_FLAG_NONE,
-        &CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, width, height, 1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL),
+        &CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, m_windowWidth, m_windowHeight, 1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL),
         D3D12_RESOURCE_STATE_DEPTH_WRITE,
         &depthOptimizedClearValue,
         IID_PPV_ARGS(&m_depthStencilBuffer)
@@ -1016,21 +1019,21 @@ bool Direct3D12::InitDepthTesting(int width, int height)
     return true;
 }
 
-void Direct3D12::SetViewportSR(int width, int height)
+void Direct3D12::SetViewportSR()
 {
     // Fill out the Viewport
     m_viewport.TopLeftX = 0;
     m_viewport.TopLeftY = 0;
-    m_viewport.Width = (float)width;
-    m_viewport.Height = (float)height;
+    m_viewport.Width = (float)m_windowWidth;
+    m_viewport.Height = (float)m_windowHeight;
     m_viewport.MinDepth = 0.0f;
     m_viewport.MaxDepth = 1.0f;
 
     // Fill out a scissor rect
     m_scissorRect.left = 0;
     m_scissorRect.top = 0;
-    m_scissorRect.right = width;
-    m_scissorRect.bottom = height;
+    m_scissorRect.right = m_windowWidth;
+    m_scissorRect.bottom = m_windowHeight;
 }
 
 bool Direct3D12::LoadTextures(LPCWSTR texturepath)

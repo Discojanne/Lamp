@@ -3,7 +3,7 @@
 #include <string>
 
 #include "mesh.h"
-#include "animation.h"
+#include "animation/animation.h"
 #include "Camera.h"
 #include "InputListener.h"
 
@@ -19,7 +19,7 @@ public:
     bool LoadMesh(std::string filename);
     bool LoadAnimation(std::string filename);
     bool CreateVertexBuffers(ID3D12Device6* device, ID3D12GraphicsCommandList6* commandList);
-    bool Init(); // move other init / load functions here later
+    bool Init(int width, int height); // move other init / load functions here later
     void Update(float dt); // same here
 
     // temporary, used to debug animation error
@@ -28,6 +28,11 @@ public:
     // Inherited via InputListener
     virtual void onKeyDown(int key) override;
     virtual void onKeyUp(int key) override;
+    virtual void onMouseMove(const Point& delta_mouse_pos) override;
+    virtual void onLeftMouseDown(const Point& mouse_pos) override;
+    virtual void onLeftMouseUp(const Point& mouse_pos) override;
+    virtual void onRightMouseDown(const Point& mouse_pos) override;
+    virtual void onRightMouseUp(const Point& mouse_pos) override;
 
     Mesh currentMesh;
     Animation currentAni;

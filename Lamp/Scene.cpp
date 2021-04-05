@@ -211,9 +211,11 @@ bool Scene::CreateVertexBuffers(ID3D12Device6* device, ID3D12GraphicsCommandList
 
 }
 
-bool Scene::Init()
+bool Scene::Init(int width, int height)
 {
     InputSystem::get()->addListener(this);
+
+    cam.init(width, height);
 
     return true;
 }
@@ -222,9 +224,10 @@ void Scene::Update(float dt)
 {
     m_dt = dt;
     InputSystem::get()->update();
-
+    
     cam.Update(dt);
-    cam.UpdateCube(dt);
+    //cam.BuildCamMatrices();
+    //cam.UpdateCube(dt);
 }
 
 void Scene::testAnimationFunc(int animFrame)
@@ -277,20 +280,31 @@ void Scene::testAnimationFunc(int animFrame)
 
 void Scene::onKeyDown(int key)
 {
-    if (key == 'W')
-    {
-        cam.m_cameraPosition.z += 15 * m_dt;
-    }
-    else if (key == 'S')
-    {
-        cam.m_cameraPosition.z -= 15 * m_dt;
-    }
+    cam.OnKeyDown(key);
 }
 
 void Scene::onKeyUp(int key)
 {
-    if (key == 'R')
-    {
-        cam.m_cameraPosition.z = -8.0f;
-    }
+    cam.OnKeyUp(key);
+}
+
+void Scene::onMouseMove(const Point& delta_mouse_pos)
+{
+    cam.OnMouseMove(delta_mouse_pos);
+}
+
+void Scene::onLeftMouseDown(const Point& mouse_pos)
+{
+}
+
+void Scene::onLeftMouseUp(const Point& mouse_pos)
+{
+}
+
+void Scene::onRightMouseDown(const Point& mouse_pos)
+{
+}
+
+void Scene::onRightMouseUp(const Point& mouse_pos)
+{
 }

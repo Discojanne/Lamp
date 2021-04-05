@@ -50,8 +50,8 @@ ByteAddressBuffer			UniqueVertexIndices : register(t3);
 uint3 UnpackPrimitive(uint primitive)
 {
     // Unpacks a 10 bits per index triangle from a 32-bit uint.
-	return uint3(primitive & 0x3FF, (primitive >> 10) & 0x3FF, (primitive >> 20) & 0x3FF);
-	//return uint3((primitive >> 20) & 0x3FF, (primitive >> 10) & 0x3FF, primitive & 0x3FF); // vände på trianglarna?
+	//return uint3(primitive & 0x3FF, (primitive >> 10) & 0x3FF, (primitive >> 20) & 0x3FF);
+	return uint3((primitive >> 20) & 0x3FF, (primitive >> 10) & 0x3FF, primitive & 0x3FF); // vände på trianglarna?
 }
 
 uint3 GetPrimitive(Meshlet m, uint index)
@@ -97,8 +97,8 @@ void MSmain(in uint threadID : SV_GroupThreadID, in uint groupID : SV_GroupID,
 		
 		float4 pos = Skin(vertexIndex);
         
-		//pos.x += 50.0f; bridovivel
-        pos.x += 3.0f;
+		pos.x += 50.0f; //bridovivel
+        //pos.x += 3.0f;
 		
 		outVerts[threadID].pos = TransformPos(pos);
 			outVerts[threadID].color = (int)groupID * float4(1.0f,1.0f,1.0f,1.0f);

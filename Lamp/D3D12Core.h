@@ -10,6 +10,11 @@ class DXILShaderCompiler;
 
 #define testtexturename L"Resources/textures/nightmare3.png"
 
+//#define MODELFILENAME "cube"
+#define MODELFILENAME "bride_dress"
+//#define ANIMATIONFILENAME "ca2"
+#define ANIMATIONFILENAME "man_walk"
+
 class Direct3D12
 {
 public:
@@ -49,10 +54,13 @@ private:
 	bool InitRootSignature();
 	bool InitShaderLayoutGPS();
 	bool LoadModels();
-	bool InitDepthTesting(int width, int height);
-	void SetViewportSR(int width, int height);
+	bool InitDepthTesting();
+	void SetViewportSR();
 	bool LoadTextures(LPCWSTR texturepath);
 	void Signal();
+
+	int m_windowWidth = 0;
+	int m_windowHeight = 0;
 
 	ID3D12Device6* m_device;
 	ID3D12CommandQueue* m_commandQueue; // container for command lists

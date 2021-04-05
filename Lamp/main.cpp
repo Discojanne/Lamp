@@ -168,6 +168,7 @@ bool InitializeWindow(HINSTANCE hInstance,int ShowWnd,int width, int height,bool
 	ShowWindow(hwnd, ShowWnd);
 	UpdateWindow(hwnd);
 
+
 	return true;
 }
 

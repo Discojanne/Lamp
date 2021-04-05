@@ -31,7 +31,7 @@ VS_OUTPUT VSmain(VS_INPUT input, uint id : SV_InstanceID)
 	
 	output.pos = mul(float4(tmpPos.xyz, 1.0f), wvpMat);
 	
-	output.color = 1.0f;
+	output.color = float4(1.0f, 1.0f, 1.0f, 1.0f);
 	//output.pos = mul(float4(input.pos, 1.0f), wvpMat);
 	
 	return output;

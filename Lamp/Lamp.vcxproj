@@ -142,7 +142,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="animation.cpp" />
+    <ClCompile Include="animation\animation.cpp" />
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="CompilerClass.cpp" />
     <ClCompile Include="D3D12Core.cpp">
@@ -157,7 +157,7 @@
     <ClCompile Include="Scene.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="animation.h" />
+    <ClInclude Include="animation\animation.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="CompilerClass.h" />
     <ClInclude Include="D3D12Core.h">
@@ -170,6 +170,7 @@
     <ClInclude Include="ioSMD.h" />
     <ClInclude Include="ExtraMath.h" />
     <ClInclude Include="mesh.h" />
+    <ClInclude Include="Point.h" />
     <ClInclude Include="Scene.h" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>

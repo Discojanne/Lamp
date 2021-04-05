@@ -31,7 +31,7 @@
 #include <map>
 
 #include "mesh.h"
-#include "animation.h"
+#include "animation/animation.h"
 
 
 
@@ -265,17 +265,12 @@ void Mesh::GenerateMeshlets()
 {
     HRESULT hr;
 
-    
-   /* Subset s;
-    s.Count = 1;
-    s.Offset = 0;
-    subsets.push_back(s);*/
 
     uint32_t maxVerts = 64;
-    uint32_t maxPrims = 2;
+    uint32_t maxPrims = 128;
     
     int nrOfIndices = face.size() * 3;
-    uint32_t tmpIndices[96];// = new uint32_t[nrOfIndices];
+    uint32_t* tmpIndices = new uint32_t[nrOfIndices];
     for (size_t i = 0; i < face.size(); i++)
     {
         tmpIndices[i * 3 + 0] = face[i].index[0];
@@ -284,12 +279,12 @@ void Mesh::GenerateMeshlets()
     }
     
     uint32_t nrOfVertices = vert.size();
-    DirectX::XMFLOAT3 tmpPositions[78];// = new DirectX::XMFLOAT3[nrOfVertices];
+    DirectX::XMFLOAT3* tmpPositions = new DirectX::XMFLOAT3[nrOfVertices];
     for (size_t i = 0; i < nrOfVertices; i++)
     {
         tmpPositions[i] = vert[i].pos;
     }
-    sizeof(PackedTriangle);
+
     hr = ComputeMeshlets(
         maxVerts,                       // max verts
         maxPrims,                       // max prims
@@ -302,11 +297,12 @@ void Mesh::GenerateMeshlets()
         uniqueVertexIndices,            // uniqueVertexIndices
         primitiveIndices                // primitiveIndices
     );
-
     if (FAILED(hr))
     {
         int by = 0;
     }
+    delete[] tmpIndices;
+    delete[] tmpPositions;
 }
 
 

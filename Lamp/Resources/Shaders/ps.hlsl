@@ -14,8 +14,8 @@ struct VS_OUTPUT
 
 float4 PSmain(VS_OUTPUT input) : SV_TARGET
 {
-	float cs = (((input.color+1) * 7) % 10) / 10;
-	float cs2 = ((input.color+1) % 10) / 10;
+	float cs = (((input.color.x + 1) * 7) % 10) / 10.0f;
+	float cs2 = ((input.color.x + 1) % 10) / 10.0f;
 	float4 color = saturate(float4(cs * 1.0f, cs2 * 1.0f, 1.0f, 1.0f));
 	return color;
 }

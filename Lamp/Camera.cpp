@@ -9,8 +9,8 @@ Camera::Camera()
     // set starting camera state
     //m_cameraPosition = DirectX::XMFLOAT4(8.0f, 3.0f, -8.0f, 0.0f);  // cubeman
     //m_cameraTarget = DirectX::XMFLOAT4(1.0f, 0.5f, 0.0f, 0.0f);     // cubeman
-    m_cameraPosition = DirectX::XMFLOAT3(25.0f, 10.0f, -80.0f); // Bridovivel
-    m_lookDirection = DirectX::XMFLOAT3(25.0f, 10.0f, 0.0f);     // Bridovivel
+    m_cameraPosition = DirectX::XMFLOAT3(15.0f, 10.0f, -60.0f); // Bridovivel
+    m_lookDirection = DirectX::XMFLOAT3(15.0f, 10.0f, 0.0f);     // Bridovivel
     m_cameraUp = DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f);
 
     m_moveSpeed = 20.0f;
@@ -184,6 +184,6 @@ void Camera::OnKeyUp(int key)
 
 void Camera::OnMouseMove(const Point& delta_mouse_pos)
 {
-    m_rotX -= delta_mouse_pos.m_x * 0.001;
-    m_rotY -= delta_mouse_pos.m_y * 0.001;
+    //m_rotX -= delta_mouse_pos.m_x * 0.001;
+    //m_rotY -= delta_mouse_pos.m_y * 0.001;
 }

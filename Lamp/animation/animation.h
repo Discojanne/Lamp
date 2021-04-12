@@ -63,13 +63,14 @@ struct Animation
 /* classes Bone and Skeleton: needed only for loading and construction */
 
 struct Bone{
-    int attach; // index of bone this bone is attached to
-    std::vector<int> next; // index of bone(s) attached to this bone
+    int attach;             // index of bone this bone is attached to
+    std::vector<int> next;  // index of bone(s) attached to this bone
 };
 
 struct Skeleton{
     std::vector< int > root; // many roots?
     std::vector< Bone > bone;
+    Pose inverseBindPose;
 
     void cumulate( Pose &p );
     void buildTree();

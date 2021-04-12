@@ -281,11 +281,26 @@ void Scene::testAnimationFunc(int animFrame)
 void Scene::onKeyDown(int key)
 {
     cam.OnKeyDown(key);
+
+    
 }
 
 void Scene::onKeyUp(int key)
 {
     cam.OnKeyUp(key);
+
+    switch (key)
+    {
+    case 'W':
+       
+        break;
+    case 0x26://up
+        drawThisMany++;
+        break;
+    case 0x28://down
+        drawThisMany--;
+        break;
+    }
 }
 
 void Scene::onMouseMove(const Point& delta_mouse_pos)

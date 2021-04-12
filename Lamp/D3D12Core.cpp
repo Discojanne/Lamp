@@ -120,7 +120,7 @@ void Direct3D12::Update(double dt)
     static float time = 0.0f;
     time += dt;
     //if (time > 0.03f)
-    if (time > 0.1f)
+    if (time > 0.05f)
     {
         m_anitmaionframe++;
         if (m_anitmaionframe > m_scene->currentAni.pose.size() - 1/*31*/)
@@ -251,27 +251,9 @@ bool Direct3D12::UpdatePipeline()
     m_commandList->SetGraphicsRootShaderResourceView(4, m_scene->currentMesh.UniqueResSB->GetGPUVirtualAddress());
     
     m_commandList->DispatchMesh(m_scene->currentMesh.meshletVector.size(), 1, 1);
+
+    //m_commandList->DispatchMesh(m_scene->drawThisMany, 1, 1);
     
-    
-
-
-    // mesh subset stuff?
-
-    /*for (auto& mesh : m_model)
-    {
-        m_commandList->SetGraphicsRoot32BitConstant(1, mesh.IndexSize, 0);
-        m_commandList->SetGraphicsRootShaderResourceView(2, mesh.VertexResources[0]->GetGPUVirtualAddress());
-        m_commandList->SetGraphicsRootShaderResourceView(3, mesh.MeshletResource->GetGPUVirtualAddress());
-        m_commandList->SetGraphicsRootShaderResourceView(4, mesh.UniqueVertexIndexResource->GetGPUVirtualAddress());
-        m_commandList->SetGraphicsRootShaderResourceView(5, mesh.PrimitiveIndexResource->GetGPUVirtualAddress());
-
-        for (auto& subset : mesh.MeshletSubsets)
-        {
-            m_commandList->SetGraphicsRoot32BitConstant(1, subset.Offset, 1);
-            m_commandList->DispatchMesh(subset.Count, 1, 1);
-        }
-    }*/
-
 
 
     // transition the "frameIndex" render target from the render target state to the present state. If the debug layer is enabled, you will receive a

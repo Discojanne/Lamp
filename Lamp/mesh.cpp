@@ -265,7 +265,6 @@ void Mesh::GenerateMeshlets()
 {
     HRESULT hr;
 
-
     uint32_t maxVerts = 64;
     uint32_t maxPrims = 128;
     
@@ -276,6 +275,10 @@ void Mesh::GenerateMeshlets()
         tmpIndices[i * 3 + 0] = face[i].index[0];
         tmpIndices[i * 3 + 1] = face[i].index[1];
         tmpIndices[i * 3 + 2] = face[i].index[2];
+
+        /*tmpIndices[i * 3 + 0] = face[i].index[2];
+        tmpIndices[i * 3 + 1] = face[i].index[1];
+        tmpIndices[i * 3 + 2] = face[i].index[0];*/
     }
     
     uint32_t nrOfVertices = vert.size();
@@ -289,7 +292,7 @@ void Mesh::GenerateMeshlets()
         maxVerts,                       // max verts
         maxPrims,                       // max prims
         tmpIndices,                     // indices
-        face.size()*3,                    // nFaces
+        face.size()*3,                  // nFaces
         tmpPositions,                   // positions
         nrOfVertices,                   // nVerts
         subsets,                        // subset
@@ -297,6 +300,23 @@ void Mesh::GenerateMeshlets()
         uniqueVertexIndices,            // uniqueVertexIndices
         primitiveIndices                // primitiveIndices
     );
+
+    /*std::vector<PackedTriangle> test;
+    bool flahg = true;
+    for (uint32_t i = 0; i < primitiveIndices.size(); i++)
+    {
+        for (uint32_t j = 0; j < test.size(); j++)
+        {
+            if (test[j].indices.i0 == primitiveIndices[i].indices.i0 && test[j].indices.i1 == primitiveIndices[i].indices.i1 && test[j].indices.i2 == primitiveIndices[i].indices.i2)
+            {
+                primitiveIndices.erase(primitiveIndices.begin() + i);
+                j = test.size();
+            }
+        }
+        test.push_back(primitiveIndices[i]);
+    }*/
+
+
     if (FAILED(hr))
     {
         int by = 0;

@@ -38,6 +38,9 @@ public:
     Animation currentAni;
     Camera cam;
 
+    // used to debug meshlets using dispatch
+    int drawThisMany = 9;
+
 private:
 
     float m_dt = 0.0f;

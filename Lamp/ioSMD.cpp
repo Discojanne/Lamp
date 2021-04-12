@@ -18,9 +18,6 @@ XMMATRIX euler2matrix(float* eul){
     // notation clash (sigh): swap Y-Z axes
     //float f[16]={1,0,0,0, 0,0,1,0, 0,1,0,0, 0,0,0,1};
   
-    //new 
-    m = DirectX::XMMatrixTranspose(m);
-        
     XMMATRIX axesSwapper(   1, 0, 0, 0, 
                             0, 0, 1, 0, 
                             0, 1, 0, 0, 
@@ -217,7 +214,7 @@ bool ioSMD::import(FILE* f, Mesh &m , Animation &a ){
     a.clear();
     m.clear();
 
-    lastErr = 0;
+    //lastErr = 0;
 
     Skeleton s;
 
@@ -226,46 +223,33 @@ bool ioSMD::import(FILE* f, Mesh &m , Animation &a ){
 
     if (!expect(f,"skeleton")) return false;
 
-    // we assume the first pose is the rest pose
-    Pose restPose;
-    if (!importPose(f,restPose)) return false; // initial pose
+    // Get the bind pose / rest pose / initial pose
+    if (!importPose(f, s.inverseBindPose)) return false;
 
-  
+    s.cumulate(s.inverseBindPose);
+    s.inverseBindPose.invert();
 
-    s.cumulate( restPose );
-  
-    restPose.invert();
-   
-    /*for (size_t k = 0; k < restPose.matr.size(); k++)
-    {
-        restPose.matr[k] = DirectX::XMMatrixTranspose(restPose.matr[k]);
-    }*/
-
-
+    // Import all the keyframe poses for this animation
     a.pose.clear();
     while (1) {
         Pose p;
         if (!importPose(f,p)) break;
 
-        Pose rp = restPose;
-        rp.invert();
-
-
-        //p *= rp;
         s.cumulate( p );
-        p *= restPose;
-
-        //rp.invert();
-        //p *= rp;
-
-        // new
-        /*for (size_t k = 0; k < p.matr.size(); k++)
-        {
-            p.matr[k] = DirectX::XMMatrixTranspose(p.matr[k]);
-        }*/
+        p *= s.inverseBindPose;
 
         a.pose.push_back( p );
     }
+
+
+
+
+
+
+
+
+
+
 
     expectedErr="end";
     if (strcmp(foundErr,expectedErr)!=0) {

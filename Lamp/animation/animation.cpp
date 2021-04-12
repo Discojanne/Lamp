@@ -75,7 +75,7 @@ void Pose::setRotation(int bonei, XMMATRIX r){
         SetColMatrix(matr[bonei], i, XMFLOAT3(r.r[i].m128_f32[0], 
             r.r[i].m128_f32[1], r.r[i].m128_f32[2]));
     }*/
-    /*matr[bonei].r[0].m128_f32[0] = r.r[0].m128_f32[0];
+    matr[bonei].r[0].m128_f32[0] = r.r[0].m128_f32[0];
     matr[bonei].r[1].m128_f32[0] = r.r[0].m128_f32[1];
     matr[bonei].r[2].m128_f32[0] = r.r[0].m128_f32[2];
     matr[bonei].r[3].m128_f32[0] = r.r[0].m128_f32[3];
@@ -88,34 +88,22 @@ void Pose::setRotation(int bonei, XMMATRIX r){
     matr[bonei].r[0].m128_f32[2] = r.r[2].m128_f32[0];
     matr[bonei].r[1].m128_f32[2] = r.r[2].m128_f32[1];
     matr[bonei].r[2].m128_f32[2] = r.r[2].m128_f32[2];
-    matr[bonei].r[3].m128_f32[2] = r.r[2].m128_f32[3];*/
-
-    // new
-    //matr[bonei] = DirectX::XMMatrixTranspose(matr[bonei]);
+    matr[bonei].r[3].m128_f32[2] = r.r[2].m128_f32[3];
 
     // new new
-    matr[bonei].r[0] = r.r[0];
-    //matr[bonei].r[0].m128_f32[1] = r.r[0].m128_f32[1];
-    //matr[bonei].r[0].m128_f32[2] = r.r[0].m128_f32[2];
-    //matr[bonei].r[0].m128_f32[3] = r.r[0].m128_f32[3];
+    /*matr[bonei].r[0] = r.r[0];
 
     matr[bonei].r[1] = r.r[1];
-    //matr[bonei].r[1].m128_f32[1] = r.r[1].m128_f32[1];
-    //matr[bonei].r[2].m128_f32[1] = r.r[1].m128_f32[2];
-    //matr[bonei].r[3].m128_f32[1] = r.r[1].m128_f32[3];
 
-    matr[bonei].r[2] = r.r[2];
-    //matr[bonei].r[1].m128_f32[2] = r.r[2].m128_f32[1];
-    //matr[bonei].r[2].m128_f32[2] = r.r[2].m128_f32[2];
-    //matr[bonei].r[3].m128_f32[2] = r.r[2].m128_f32[3];
+    matr[bonei].r[2] = r.r[2];*/
 }
 
 void Pose::setTranslation(int bonei, XMFLOAT3 t){
 
-   /* matr[bonei].r[0].m128_f32[3] = t.x;
+    matr[bonei].r[0].m128_f32[3] = t.x;
     matr[bonei].r[1].m128_f32[3] = t.y;
     matr[bonei].r[2].m128_f32[3] = t.z;
-    matr[bonei].r[3].m128_f32[3] = 1.0f;*/
+    matr[bonei].r[3].m128_f32[3] = 1.0f;
 
     // new
    /* matr[bonei].r[3].m128_f32[0] = t.x;
@@ -127,10 +115,10 @@ void Pose::setTranslation(int bonei, XMFLOAT3 t){
     //matr[bonei] = DirectX::XMMatrixTranslation(t.x, t.y, t.z);
 
     // new new new
-    matr[bonei].r[3].m128_f32[0] = t.x;
+    /*matr[bonei].r[3].m128_f32[0] = t.x;
     matr[bonei].r[3].m128_f32[1] = t.y;
     matr[bonei].r[3].m128_f32[2] = t.z;
-    matr[bonei].r[3].m128_f32[3] = 1.0f;
+    matr[bonei].r[3].m128_f32[3] = 1.0f;*/
 
     // new new new new
     //matr[bonei] = DirectX::XMMatrixTranslation(t.x, t.y, t.z);

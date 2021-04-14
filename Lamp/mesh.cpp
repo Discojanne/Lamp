@@ -175,7 +175,7 @@ bool Mesh::UploadGpuResources(ID3D12Device* device, ID3D12GraphicsCommandList* c
         return false;
 
     // Index buffer TODO: -> PrimitiveIndices
-    int iBufferSize = sizeof(PackedTriangle) * primitiveIndices.size();
+    int iBufferSize = sizeof(MeshletTriangle) * primitiveIndices.size();
     auto indexDesc = CD3DX12_RESOURCE_DESC::Buffer(iBufferSize);
     hr = device->CreateCommittedResource(&defaultHeapDesc, D3D12_HEAP_FLAG_NONE, &indexDesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&IndexResSB));
     if (FAILED(hr))
@@ -270,7 +270,7 @@ void Mesh::GenerateMeshlets()
     
     // .smd no indices.. 128:42 leaves no holes in the algor
     uint32_t maxVerts = 128;
-    uint32_t maxPrims = 42;
+    uint32_t maxPrims = 128;
 
     int nrOfIndices = face.size() * 3;
     uint32_t* tmpIndices = new uint32_t[nrOfIndices];
@@ -291,19 +291,32 @@ void Mesh::GenerateMeshlets()
     {
         tmpPositions[i] = vert[i].pos;
     }
-
+    
     hr = ComputeMeshlets(
-        maxVerts,                       // max verts
-        maxPrims,                       // max prims
         tmpIndices,                     // indices
-        face.size()*3,                  // nFaces
+        face.size(),                  // nFaces
         tmpPositions,                   // positions
         nrOfVertices,                   // nVerts
-        subsets,                        // subset
+        nullptr,                        // subset
         meshletVector,                  // meshlets
         uniqueVertexIndices,            // uniqueVertexIndices
-        primitiveIndices                // primitiveIndices
+        primitiveIndices,                // primitiveIndices
+        maxVerts,                       // max verts
+        maxPrims                       // max prims
     );
+
+    //hr = ComputeMeshlets(
+    //    maxVerts,                       // max verts
+    //    maxPrims,                       // max prims
+    //    tmpIndices,                     // indices
+    //    face.size()*3,                  // nFaces
+    //    tmpPositions,                   // positions
+    //    nrOfVertices,                   // nVerts
+    //    subsets,                        // subset
+    //    meshletVector,                  // meshlets
+    //    uniqueVertexIndices,            // uniqueVertexIndices
+    //    primitiveIndices                // primitiveIndices
+    //);
 
     /*std::vector<PackedTriangle> test;
     bool flahg = true;

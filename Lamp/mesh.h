@@ -31,8 +31,8 @@
 
 #include <vector>
 #include "ExtraMath.h"
-#include <D3D12MeshletGenerator.h>
-
+//#include <D3D12MeshletGenerator.h>
+#include <DirectXMesh.h>
 #include "d3dx12.h"
 
 class Pose;
@@ -112,10 +112,10 @@ public:
     std::vector<Vert> vert;
     std::vector<Face> face;
     //std::vector<Meshlet2> meshletVector;
-    std::vector<Subset> subsets;
+    std::vector<std::pair<size_t, size_t>> subsets;
     std::vector<Meshlet> meshletVector; // SOON™
     std::vector<uint8_t> uniqueVertexIndices;
-    std::vector<PackedTriangle> primitiveIndices;
+    std::vector<MeshletTriangle> primitiveIndices;
 
     ID3D12Resource* vertexBuffer; // a default buffer in GPU memory that we will load vertex data for our triangle into
     D3D12_VERTEX_BUFFER_VIEW vertexBufferView; // a structure containing a pointer to the vertex data in gpu memory

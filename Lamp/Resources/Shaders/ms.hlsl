@@ -79,7 +79,7 @@ float4 Skin(uint vertexID)
 [NumThreads(128, 1, 1)]
 void MSmain(in uint threadID : SV_GroupThreadID, in uint groupID : SV_GroupID,
     out vertices VertexOut outVerts[128],
-    out indices uint3 outIndices[64])
+    out indices uint3 outIndices[128])
 {
 	
 	Meshlet m = Meshlets[groupID];

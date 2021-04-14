@@ -265,9 +265,13 @@ void Mesh::GenerateMeshlets()
 {
     HRESULT hr;
 
-    uint32_t maxVerts = 64;
-    uint32_t maxPrims = 128;
+    //uint32_t maxVerts = 64;
+    //uint32_t maxPrims = 128;
     
+    // .smd no indices.. 128:42 leaves no holes in the algor
+    uint32_t maxVerts = 128;
+    uint32_t maxPrims = 42;
+
     int nrOfIndices = face.size() * 3;
     uint32_t* tmpIndices = new uint32_t[nrOfIndices];
     for (size_t i = 0; i < face.size(); i++)

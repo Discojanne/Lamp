@@ -78,7 +78,7 @@ float4 Skin(uint vertexID)
 [OutputTopology("triangle")]
 [NumThreads(128, 1, 1)]
 void MSmain(in uint threadID : SV_GroupThreadID, in uint groupID : SV_GroupID,
-    out vertices VertexOut outVerts[126],
+    out vertices VertexOut outVerts[128],
     out indices uint3 outIndices[64])
 {
 	
@@ -98,7 +98,7 @@ void MSmain(in uint threadID : SV_GroupThreadID, in uint groupID : SV_GroupID,
 		float4 pos = Skin(vertexIndex);
 		//pos = float4(Vertices[vertexIndex].pos,1.0f);
 		
-		pos.x += 30.0f; //bridovivel
+		pos.x += 10.0f; //bridovivel
         //pos.x += 3.0f;
 		
 		outVerts[threadID].pos = TransformPos(pos);

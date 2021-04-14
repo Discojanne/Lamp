@@ -9,8 +9,8 @@ Camera::Camera()
     // set starting camera state
     //m_cameraPosition = DirectX::XMFLOAT4(8.0f, 3.0f, -8.0f, 0.0f);  // cubeman
     //m_cameraTarget = DirectX::XMFLOAT4(1.0f, 0.5f, 0.0f, 0.0f);     // cubeman
-    m_cameraPosition = DirectX::XMFLOAT3(15.0f, 10.0f, -60.0f); // Bridovivel
-    m_lookDirection = DirectX::XMFLOAT3(15.0f, 10.0f, 0.0f);     // Bridovivel
+    m_cameraPosition = DirectX::XMFLOAT3(0.0f, 20.0f, 30.0f); // Bridovivel
+    m_lookDirection = DirectX::XMFLOAT3(6.0f, 10.0f, 0.0f);     // Bridovivel
     m_cameraUp = DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f);
 
     m_moveSpeed = 20.0f;
@@ -91,23 +91,23 @@ void Camera::Update(float dt)
 {
 
     if (m_keysPressed.a){
-        m_cameraPosition.x -= m_moveSpeed * dt;
-        m_lookDirection.x -= m_moveSpeed * dt;
-    }
-        
-    if (m_keysPressed.d){
         m_cameraPosition.x += m_moveSpeed * dt;
         m_lookDirection.x += m_moveSpeed * dt;
     }
         
+    if (m_keysPressed.d){
+        m_cameraPosition.x -= m_moveSpeed * dt;
+        m_lookDirection.x -= m_moveSpeed * dt;
+    }
+        
     if (m_keysPressed.w){
-        m_cameraPosition.z += m_moveSpeed * dt;
-        m_lookDirection.z += m_moveSpeed * dt;
+        m_cameraPosition.z -= m_moveSpeed * dt;
+        m_lookDirection.z -= m_moveSpeed * dt;
     }
     
     if (m_keysPressed.s){
-        m_cameraPosition.z -= m_moveSpeed * dt;
-        m_lookDirection.z -= m_moveSpeed * dt;
+        m_cameraPosition.z += m_moveSpeed * dt;
+        m_lookDirection.z += m_moveSpeed * dt;
     }
 
     if (m_keysPressed.left) {

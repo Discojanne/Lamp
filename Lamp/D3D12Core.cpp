@@ -4,6 +4,9 @@
 #include <iostream>
 //#include <d3dcompiler.h>
 #include "CompilerClass.h"
+#include <fstream>
+
+
 
 Direct3D12::Direct3D12()
 {
@@ -54,6 +57,8 @@ bool Direct3D12::InitD3D(HWND hwnd, int width, int height)
     debugController->Release();
 #endif
 
+    m_windowHeight = height; m_windowWidth = width;
+
 	HRESULT hr;
 
     if (!InitDevice(hwnd))
@@ -77,110 +82,90 @@ bool Direct3D12::InitD3D(HWND hwnd, int width, int height)
     if (!InitRootSignature())
         return false;
 
-    if (!InitConstantBuffer())
-        return false;
 
     if (!InitShaderLayoutGPS())
         return false;
 
-    if (!InitVertexIndexBuffer())
+    if (!LoadModels())
         return false;
 
-    if (!InitDepthTesting(width, height))
+    m_textureNameArray = { L"bride_dress_normalmap.dds", L"arms.jpg", L"shirt.jpg", L"pants.jpg", L"shoes.jpg", };
+
+    if (!InitConstantBuffer())
+        return false;
+   
+
+    if (!InitDepthTesting())
         return false;
 
-    if (!LoadTextures())
+   
+
+    if (!LoadTextures(m_textureNameArray.at(0).c_str()))
         return false;
     
 
-    SetViewportSR(width, height);
+    SetViewportSR();
 
-    BuildCamMatrices(width, height);
-
+    m_scene->Init(m_windowWidth, m_windowHeight);
+   
 	return true;
 }
 
-void Direct3D12::Update()
+void Direct3D12::Update(double dt)
 {
-   // update app logic, such as moving the camera or figuring out what objects are in view
+    m_scene->Update(dt);
 
-   // create rotation matrices
-    DirectX::XMMATRIX rotXMat = DirectX::XMMatrixRotationX(0.0001f);
-    DirectX::XMMATRIX rotYMat = DirectX::XMMatrixRotationY(0.0002f);
-    DirectX::XMMATRIX rotZMat = DirectX::XMMatrixRotationZ(0.0003f);
+    m_cbPerObject.wvpMat = DirectX::XMMatrixTranspose(m_scene->cam.GenerateWVP());
 
-    // add rotation to cube1's rotation matrix and store it
-    DirectX::XMMATRIX rotMat = DirectX::XMLoadFloat4x4(&m_cube1RotMat) * rotXMat * rotYMat * rotZMat;
-    DirectX::XMStoreFloat4x4(&m_cube1RotMat, rotMat);
+    static float time = 0.0f;
+    time += dt;
+    //if (time > 0.03f)
+    if (time > 0.04f)
+    {
+        m_anitmaionframe++;
+        if (m_anitmaionframe > m_scene->currentAni.pose.size() - 1/*31*/)
+        {
+            m_anitmaionframe = 0;
+        }
+        time = 0;
+    }
+    //m_anitmaionframe = 5;
 
-    // create translation matrix for cube 1 from cube 1's position vector
-    DirectX::XMMATRIX translationMat = DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat4(&m_cube1Position));
+    // CPU Skinning - only do output.pos = mul(float4(input.pos, 1.0f), wvpMat); in shader
+    //m_scene->testAnimationFunc(m_anitmaionframe);
 
-    DirectX::XMMATRIX scaleMat = DirectX::XMMatrixScaling(0.5f, 0.5f, 0.5f);
+    // x D
+   /* for (size_t i = 0; i < m_scene->currentMesh.vertLiteVector.size(); i++)
+    {
+        m_scene->currentMesh.vertLiteVector[i].boneIndex[3] = animFlag;
+    }
 
-    // create cube1's world matrix by first rotating the cube, then positioning the rotated cube
-    DirectX::XMMATRIX worldMat = scaleMat * rotMat * translationMat;
-
-    // store cube1's world matrix
-    DirectX::XMStoreFloat4x4(&m_cube1WorldMat, worldMat);
+    CD3DX12_RANGE readRange(0, 0);
+    void* data = nullptr;
+    m_scene->currentMesh.vBufferUploadHeap->Map(0, &readRange, &data);
+    int nrOfVerts = m_scene->currentMesh.vertLiteVector.size();
+    memcpy(data, m_scene->currentMesh.vertLiteVector.data(), sizeof(VertLite) * nrOfVerts);
+    m_scene->currentMesh.vBufferUploadHeap->Unmap(0, nullptr);*/
 
     
 
-    // update constant buffer for cube1
-    // create the wvp matrix and store in constant buffer
-    DirectX::XMMATRIX viewMat = DirectX::XMLoadFloat4x4(&m_cameraViewMat); // load view matrix
-    DirectX::XMMATRIX projMat = DirectX::XMLoadFloat4x4(&m_cameraProjMat); // load projection matrix
-    DirectX::XMMATRIX wvpMat = DirectX::XMLoadFloat4x4(&m_cube1WorldMat) * viewMat * projMat; // create wvp matrix
-    DirectX::XMMATRIX transposed = DirectX::XMMatrixTranspose(wvpMat); // must transpose wvp matrix for the gpu
-    DirectX::XMStoreFloat4x4(&m_cbPerObject.wvpMat, transposed); // store transposed wvp matrix in constant buffer
+    
 
-    // copy our ConstantBuffer instance to the mapped constant buffer resource
-    memcpy(m_cbvGPUAddress[m_frameIndex], &m_cbPerObject, sizeof(m_cbPerObject));
+    for (size_t i = 0; i < m_scene->currentAni.pose[i].matr.size(); i++)
+    {
+        m_cbPerObject.bonePoseMatrices[i] = (m_scene->currentAni.pose[m_anitmaionframe].matr[i]);
+    }
 
-    // now do cube2's world matrix
-    // create rotation matrices for cube2
-    rotXMat = DirectX::XMMatrixRotationX(0.0003f);
-    rotYMat = DirectX::XMMatrixRotationY(0.0002f);
-    rotZMat = DirectX::XMMatrixRotationZ(0.0001f);
-
-    // add rotation to cube2's rotation matrix and store it
-    rotMat = rotZMat * (DirectX::XMLoadFloat4x4(&m_cube2RotMat) * (rotXMat * rotYMat));
-    DirectX::XMStoreFloat4x4(&m_cube2RotMat, rotMat);
-
-    // create translation matrix for cube 2 to offset it from cube 1 (its position relative to cube1
-    DirectX::XMMATRIX translationOffsetMat = DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat4(&m_cube2PositionOffset));
-
-    // we want cube 2 to be half the size of cube 1, so we scale it by .5 in all dimensions
-    scaleMat = DirectX::XMMatrixScaling(0.5f, 0.5f, 0.5f);
-
-    // reuse worldMat. 
-    // first we scale cube2. scaling happens relative to point 0,0,0, so you will almost always want to scale first
-    // then we translate it. 
-    // then we rotate it. rotation always rotates around point 0,0,0
-    // finally we move it to cube 1's position, which will cause it to rotate around cube 1
-    worldMat = scaleMat * translationOffsetMat * rotMat * translationMat;
-
-    wvpMat = DirectX::XMLoadFloat4x4(&m_cube2WorldMat) * viewMat * projMat; // create wvp matrix
-    transposed = DirectX::XMMatrixTranspose(wvpMat); // must transpose wvp matrix for the gpu
-    DirectX::XMStoreFloat4x4(&m_cbPerObject.wvpMat, transposed); // store transposed wvp matrix in constant buffer
-
-    // copy our ConstantBuffer instance to the mapped constant buffer resource
-    //memcpy(m_cbvGPUAddress[m_frameIndex] + m_ConstantBufferPerObjectAlignedSize, &m_cbPerObject, sizeof(m_cbPerObject));
-    memcpy(m_cbvGPUAddress[m_frameIndex] + m_ConstantBufferPerObjectAlignedSize, &m_cbPerObject, sizeof(m_cbPerObject));
-
-    // store cube2's world matrix
-    DirectX::XMStoreFloat4x4(&m_cube2WorldMat, worldMat);
-
-
+    memcpy(m_cbvGPUAddress[m_frameIndex], &m_cbPerObject, sizeof(ConstantBufferPerObject));
 }
 
 bool Direct3D12::UpdatePipeline()
 {
 
     HRESULT hr;
-
+    
     // We have to wait for the gpu to finish with the command allocator before we reset it
-    WaitForNextFrameBuffers(m_swapChain->GetCurrentBackBufferIndex());
+    WaitForNextFrameBuffers(1 - m_swapChain->GetCurrentBackBufferIndex());
 
     // we can only reset an allocator once the gpu is done with it
     // resetting an allocator frees the memory that the command list was stored in
@@ -221,17 +206,20 @@ bool Direct3D12::UpdatePipeline()
     m_commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, &dsvHandle);
 
     // Clear the render target by using the ClearRenderTargetView command
-    const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
+    //const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
+    const float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
     m_commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
     m_commandList->ClearDepthStencilView(m_dsDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
     m_commandList->RSSetViewports(1, &m_viewport); // set the viewports
     m_commandList->RSSetScissorRects(1, &m_scissorRect); // set the scissor rects
+    //m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST); // set the primitive topology
+    //m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // set the primitive topology
     m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // set the primitive topology
-
+    //m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST); // set the primitive topology
     
     m_commandList->SetGraphicsRootSignature(m_rootSignature); // set the root signature
-
+    
     // set the root descriptor table 0 to the constant buffer descriptor heap
     
 
@@ -239,26 +227,34 @@ bool Direct3D12::UpdatePipeline()
     // set the descriptor heap
     ID3D12DescriptorHeap* descriptorHeaps[] = { m_mainDescriptorHeap };
     m_commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
-    // set the descriptor table to the descriptor heap (parameter 1, as constant buffer root descriptor is parameter index 0)
-    m_commandList->SetGraphicsRootDescriptorTable(1, m_mainDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
     ///
 
     // draw triangle
     m_commandList->SetGraphicsRootConstantBufferView(0, m_constantBufferUploadHeaps[m_frameIndex]->GetGPUVirtualAddress());
-
     m_commandList->SetPipelineState(m_pipelineStateObject);
-    m_commandList->IASetVertexBuffers(0, 1, &m_vertexBufferView); // set the vertex buffer (using the vertex buffer view)
-    m_commandList->IASetIndexBuffer(&m_indexBufferView);
-    m_commandList->DrawIndexedInstanced(m_numCubeIndices, 1, 0, 0, 0);
 
+ 
+    
+    m_commandList->SetGraphicsRootDescriptorTable(1, m_mainDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+    m_commandList->IASetVertexBuffers(0, 1, &m_scene->currentMesh.vertexBufferView); // set the vertex buffer (using the vertex buffer view)
+    m_commandList->IASetIndexBuffer(&m_scene->currentMesh.indexBufferView);
+    m_commandList->DrawIndexedInstanced(m_scene->currentMesh.face.size()*3, 1, 0, 0, 0);
 
     // Mesh shader
-    //m_commandList->SetGraphicsRootConstantBufferView(1, m_constantBufferUploadHeaps[m_frameIndex]->GetGPUVirtualAddress() + ConstantBufferPerObjectAlignedSize);
-    m_commandList->SetGraphicsRootConstantBufferView(0, m_constantBufferUploadHeaps[m_frameIndex]->GetGPUVirtualAddress() + m_ConstantBufferPerObjectAlignedSize);
-
+    
     m_commandList->SetPipelineState(m_MSpipelineStateObject);
-    //m_commandList->SetGraphicsRootSignature(m_rootSignatureMS);
-    m_commandList->DispatchMesh(24, 1, 1);
+    m_commandList->SetGraphicsRootSignature(m_rootSignatureMS);
+    m_commandList->SetGraphicsRootConstantBufferView(0, m_constantBufferUploadHeaps[m_frameIndex]->GetGPUVirtualAddress());
+    m_commandList->SetGraphicsRootShaderResourceView(1, m_scene->currentMesh.MeshletResSB->GetGPUVirtualAddress());
+    m_commandList->SetGraphicsRootShaderResourceView(2, m_scene->currentMesh.VertResSB->GetGPUVirtualAddress());
+    m_commandList->SetGraphicsRootShaderResourceView(3, m_scene->currentMesh.IndexResSB->GetGPUVirtualAddress());
+    m_commandList->SetGraphicsRootShaderResourceView(4, m_scene->currentMesh.UniqueResSB->GetGPUVirtualAddress());
+    
+    m_commandList->DispatchMesh(m_scene->currentMesh.meshletVector.size(), 1, 1);
+
+    //m_commandList->DispatchMesh(m_scene->drawThisMany, 1, 1);
+    
+
 
     // transition the "frameIndex" render target from the render target state to the present state. If the debug layer is enabled, you will receive a
     // warning if present is called on the render target when it's not in the present state
@@ -284,10 +280,9 @@ void Direct3D12::Render()
         MessageBox(0, L"Failed to update pipeline",
             L"Error", MB_OK);
     }
+
     // create an array of command lists (only one command list here)
     ID3D12CommandList* ppCommandLists[] = { m_commandList };
-
-    // execute the array of command lists
     m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
     // this command goes in at the end of our command queue. we will know when our command queue 
@@ -313,6 +308,8 @@ void Direct3D12::Cleanup()
     HRESULT hr;
     Signal();
 
+    
+
     // wait for the gpu to finish all frames
     for (int i = 0; i < frameBufferCount; ++i)
     {
@@ -327,6 +324,8 @@ void Direct3D12::Cleanup()
     if (SUCCEEDED(m_swapChain->GetFullscreenState(&fs, NULL)))
         m_swapChain->SetFullscreenState(false, NULL);
 
+    m_scene->currentMesh.Cleanup();
+    delete m_scene;
 
     m_rtvDescriptorHeap->Release();
     m_commandList->Release();
@@ -343,13 +342,11 @@ void Direct3D12::Cleanup()
         m_constantBufferUploadHeaps[i]->Release();
 
     };
-
+    
     m_pipelineStateObject->Release();
     m_MSpipelineStateObject->Release();
     m_rootSignature->Release();
-    //m_rootSignatureMS->Release();
-    m_vertexBuffer->Release();
-    m_indexBuffer->Release();
+    m_rootSignatureMS->Release();
 
     m_depthStencilBuffer->Release();
     m_dsDescriptorHeap->Release();
@@ -396,6 +393,11 @@ void Direct3D12::WaitForNextFrameBuffers(int frameIndex)
 HANDLE Direct3D12::getFenceEvent()
 {
 	return m_fenceEvent;
+}
+
+int Direct3D12::getAnimIndex()
+{
+    return m_anitmaionframe;
 }
 
 bool Direct3D12::InitDevice(HWND hwnd)
@@ -655,24 +657,19 @@ bool Direct3D12::InitConstantBuffer()
         // create resource for cube 1
         hr = m_device->CreateCommittedResource(
             &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), // this heap will be used to upload the constant buffer data
-            D3D12_HEAP_FLAG_NONE, // no flags
-            &CD3DX12_RESOURCE_DESC::Buffer(1024 * 64), // size of the resource heap. Must be a multiple of 64KB for single-textures and constant buffers
+            D3D12_HEAP_FLAG_NONE,            
+            &CD3DX12_RESOURCE_DESC::Buffer(sizeof(ConstantBufferPerObject)), // size of the resource heap. Must be a multiple of 64KB for single-textures and constant buffers
             D3D12_RESOURCE_STATE_GENERIC_READ, // will be data that is read from so we keep it in the generic read state
             nullptr, // we do not have use an optimized clear value for constant buffers
             IID_PPV_ARGS(&m_constantBufferUploadHeaps[i]));
         m_constantBufferUploadHeaps[i]->SetName(L"Constant Buffer Upload Resource Heap");
 
-        ZeroMemory(&m_cbPerObject, sizeof(m_cbPerObject));
-
         CD3DX12_RANGE readRange(0, 0);    // We do not intend to read from this resource on the CPU. (so end is less than or equal to begin)
 
         // map the resource heap to get a gpu virtual address to the beginning of the heap
         hr = m_constantBufferUploadHeaps[i]->Map(0, &readRange, reinterpret_cast<void**>(&m_cbvGPUAddress[i]));
-
-        // Because of the constant read alignment requirements, constant buffer views must be 256 bit aligned. Our buffers are smaller than 256 bits,
-        // so we need to add spacing between the two buffers, so that the second buffer starts at 256 bits from the beginning of the resource heap.
-        memcpy(m_cbvGPUAddress[i], &m_cbPerObject, sizeof(m_cbPerObject)); // cube1's constant buffer data
-        memcpy(m_cbvGPUAddress[i] + m_ConstantBufferPerObjectAlignedSize, &m_cbPerObject, sizeof(m_cbPerObject)); // cube2's constant buffer data
+        
+        memcpy(m_cbvGPUAddress[i], &m_cbPerObject, sizeof(ConstantBufferPerObject)); // cube1's constant buffer data
     }
 
     return true;
@@ -719,10 +716,10 @@ bool Direct3D12::InitRootSignature()
 
     // create a static sampler
     D3D12_STATIC_SAMPLER_DESC sampler = {};
-    sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
-    sampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
-    sampler.AddressV = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
-    sampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+    sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+    sampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+    sampler.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+    sampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
     sampler.MipLODBias = 0;
     sampler.MaxAnisotropy = 0;
     sampler.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
@@ -772,14 +769,13 @@ bool Direct3D12::InitShaderLayoutGPS()
     m_shaderCompiler->init();
 
 
-
-    // compile vertex shader
+    /// compile vertex shader
     IDxcBlob* vertexShader; // d3d blob for holding vertex shader bytecode
 
     DXILShaderCompiler::Desc desc;
     desc.source = nullptr;
     desc.sourceSize = 0;
-    desc.filePath = L"Resources/Shaders/VertexShadertest.hlsl";
+    desc.filePath = L"Resources/Shaders/vsLBold.hlsl";
     desc.entryPoint = L"VSmain";
     desc.targetProfile = L"vs_6_5";
 
@@ -791,18 +787,16 @@ bool Direct3D12::InitShaderLayoutGPS()
         return false;
     }
 
-    // fill out a shader bytecode structure, which is basically just a pointer
-    // to the shader bytecode and the size of the shader bytecode
     D3D12_SHADER_BYTECODE vertexShaderBytecode = {};
     vertexShaderBytecode.BytecodeLength = vertexShader->GetBufferSize();
     vertexShaderBytecode.pShaderBytecode = vertexShader->GetBufferPointer();
 
-    //// compile mesh shader
+    /// compile mesh shader
     IDxcBlob* meshShader;
 
     desc.source = nullptr;
     desc.sourceSize = 0;
-    desc.filePath = L"Resources/Shaders/testMS.hlsl";
+    desc.filePath = L"Resources/Shaders/ms.hlsl";
     desc.entryPoint = L"MSmain";
     desc.targetProfile = L"ms_6_5";
 
@@ -818,15 +812,12 @@ bool Direct3D12::InitShaderLayoutGPS()
     meshShaderBytecode.BytecodeLength = meshShader->GetBufferSize();
     meshShaderBytecode.pShaderBytecode = meshShader->GetBufferPointer();
 
-    //m_device->CreateRootSignature(0, meshShaderBytecode.pShaderBytecode,
-    //    meshShaderBytecode.BytecodeLength, IID_PPV_ARGS(&m_rootSignatureMS));
-
-    //// compile pixel shader
+    /// compile pixel shader
     IDxcBlob* pixelShader;
 
     desc.source = nullptr;
     desc.sourceSize = 0;
-    desc.filePath = L"Resources/Shaders/PixelShadertest.hlsl";
+    desc.filePath = L"Resources/Shaders/ps.hlsl";
     desc.entryPoint = L"PSmain";
     desc.targetProfile = L"ps_6_5";
 
@@ -842,12 +833,28 @@ bool Direct3D12::InitShaderLayoutGPS()
     pixelShaderBytecode.BytecodeLength = pixelShader->GetBufferSize();
     pixelShaderBytecode.pShaderBytecode = pixelShader->GetBufferPointer();
 
-    // create input layout
+    /// create input layout
     D3D12_INPUT_ELEMENT_DESC inputLayout[] =
     {
-        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        { "BONEINDEX",   0, DXGI_FORMAT_R32G32B32A32_SINT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        { "BONEWEIGHT",   0, DXGI_FORMAT_R32G32B32A32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
     };
+
+    /*D3D12_INPUT_ELEMENT_DESC inputLayout[] =
+    {
+        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        { "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        { "TANGENT",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        { "BITANGENT",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        { "BONEINDEX",   0, DXGI_FORMAT_R32G32B32A32_SINT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        { "BONEWEIGHT",   0, DXGI_FORMAT_R32G32B32A32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        { "DFT",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        { "DFB",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        { "FLIPPED",   0, DXGI_FORMAT_R32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+    };*/
+  
 
     // fill out an input layout description structure
     D3D12_INPUT_LAYOUT_DESC inputLayoutDesc = {};
@@ -856,29 +863,18 @@ bool Direct3D12::InitShaderLayoutGPS()
     inputLayoutDesc.NumElements = sizeof(inputLayout) / sizeof(D3D12_INPUT_ELEMENT_DESC);
     inputLayoutDesc.pInputElementDescs = inputLayout;
 
-    // create a pipeline state object (PSO)
-
-    // In a real application, you will have many pso's. for each different shader
-    // or different combinations of shaders, different blend states or different rasterizer states,
-    // different topology types (point, line, triangle, patch), or a different number
-    // of render targets you will need a pso
-
-    // VS is the only required shader for a pso. You might be wondering when a case would be where
-    // you only set the VS. It's possible that you have a pso that only outputs data with the stream
-    // output, and not on a render target, which means you would not need anything after the stream
-    // output.
-
+    /// Create PSO for vs ps 
     DXGI_SAMPLE_DESC sampleDesc = {};
     sampleDesc.Count = 1; // multisample count (no multisampling, so we just put 1, since we still need 1 sample)
-
-
 
     D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {}; // a structure to define a pso
     psoDesc.InputLayout = inputLayoutDesc; // the structure describing our input layout
     psoDesc.pRootSignature = m_rootSignature; // the root signature that describes the input data this pso needs
     psoDesc.VS = vertexShaderBytecode; // structure describing where to find the vertex shader bytecode and how large it is
     psoDesc.PS = pixelShaderBytecode; // same as VS but for pixel shader
+    //psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT; // type of topology we are drawing
     psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE; // type of topology we are drawing
+    //psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE; // type of topology we are drawing
     psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM; // format of the render target
     psoDesc.SampleDesc = sampleDesc; // must be the same sample description as the swapchain and depth/stencil buffer
     psoDesc.SampleMask = 0xffffffff; // sample mask has to do with multi-sampling. 0xffffffff means point sampling is done
@@ -887,14 +883,19 @@ bool Direct3D12::InitShaderLayoutGPS()
     psoDesc.NumRenderTargets = 1; // we are only binding one render target
     psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT); // a default depth stencil state
     psoDesc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
+    psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_FRONT;
 
-
-    ///
-
+    /// Create PSO for ms ps 
+    
+    hr = m_device->CreateRootSignature(0, meshShader->GetBufferPointer(), meshShader->GetBufferSize(), IID_PPV_ARGS(&m_rootSignatureMS));
+    if (FAILED(hr))
+        return false;
+    
     D3DX12_MESH_SHADER_PIPELINE_STATE_DESC MSpsoDesc = {};
-    MSpsoDesc.pRootSignature = m_rootSignature;
+    MSpsoDesc.pRootSignature = m_rootSignatureMS;
     MSpsoDesc.MS = meshShaderBytecode;
     MSpsoDesc.PS = pixelShaderBytecode;
+    MSpsoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
     MSpsoDesc.NumRenderTargets = 1;
     MSpsoDesc.RTVFormats[0] = m_renderTargets[0]->GetDesc().Format;
     MSpsoDesc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
@@ -916,7 +917,6 @@ bool Direct3D12::InitShaderLayoutGPS()
     {
         return false;
     }
-    ///
 
     // create the pso
     hr = m_device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineStateObject));
@@ -928,253 +928,40 @@ bool Direct3D12::InitShaderLayoutGPS()
     return true;
 }
 
-bool Direct3D12::InitMeshshader()
+bool Direct3D12::LoadModels()
 {
 
-    //D3DX12_MESH_SHADER_PIPELINE_STATE_DESC psoDesc = {};
-    //psoDesc.pRootSignature = m_rootSignature;
-    //psoDesc.MS = { meshShader.data, meshShader.size };
-    //psoDesc.PS = { pixelShader.data, pixelShader.size };
-    //psoDesc.NumRenderTargets = 1;
-    //psoDesc.RTVFormats[0] = m_renderTargets[0]->GetDesc().Format;
-    //psoDesc.DSVFormat = m_depthStencil->GetDesc().Format;
-    //psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);    // CW front; cull back
-    //psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);         // Opaque
-    //psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT); // Less-equal depth test w/ writes; no stencil
-    //psoDesc.SampleMask = UINT_MAX;
-    //psoDesc.SampleDesc = DefaultSampleDesc();
-
-
-
-    
-   
-
-
-
-    return true;
-}
-
-bool Direct3D12::InitVertexIndexBuffer()
-{
-    HRESULT hr;
-
-    // Create vertex buffer
-   /* Vertex vList[] = {
-    {1.0f, 1.0f, 1.0f, 0.0f,0.0f,0.0f,1.0f},
-    {1.0f, 1.0f, -1.0f, 0.0f,0.0f,1.0f,1.0f},
-    {1.0f, -1.0f, 1.0f, 0.0f,1.0f,0.0f,1.0f},
-    {1.0f, -1.0f, -1.0f, 0.0f,1.0f,1.0f,1.0f},
-    {-1.0f, 1.0f, 1.0f, 1.0f,0.0f,0.0f,1.0f},
-    {-1.0f, 1.0f, -1.0f, 1.0f,0.0f,1.0f,1.0f},
-    {-1.0f, -1.0f, 1.0f, 1.0f,1.0f,0.0f,1.0f},
-    {-1.0f, -1.0f, -1.0f, 1.0f,1.0f,1.0f,1.0f},
-    };*/
-
-    Vertex vList[] = {
-        // front face
-        { -0.5f,  0.5f, -0.5f, 0.0f, 0.0f },
-        {  0.5f, -0.5f, -0.5f, 1.0f, 1.0f },
-        { -0.5f, -0.5f, -0.5f, 0.0f, 1.0f },
-        {  0.5f,  0.5f, -0.5f, 1.0f, 0.0f },
-
-        // right side face
-        {  0.5f, -0.5f, -0.5f, 0.0f, 1.0f },
-        {  0.5f,  0.5f,  0.5f, 1.0f, 0.0f },
-        {  0.5f, -0.5f,  0.5f, 1.0f, 1.0f },
-        {  0.5f,  0.5f, -0.5f, 0.0f, 0.0f },
-
-        // left side face
-        { -0.5f,  0.5f,  0.5f, 0.0f, 0.0f },
-        { -0.5f, -0.5f, -0.5f, 1.0f, 1.0f },
-        { -0.5f, -0.5f,  0.5f, 0.0f, 1.0f },
-        { -0.5f,  0.5f, -0.5f, 1.0f, 0.0f },
-
-        // back face
-        {  0.5f,  0.5f,  0.5f, 0.0f, 0.0f },
-        { -0.5f, -0.5f,  0.5f, 1.0f, 1.0f },
-        {  0.5f, -0.5f,  0.5f, 0.0f, 1.0f },
-        { -0.5f,  0.5f,  0.5f, 1.0f, 0.0f },
-
-        // top face
-        { -0.5f,  0.5f, -0.5f, 0.0f, 1.0f },
-        {  0.5f,  0.5f,  0.5f, 1.0f, 0.0f },
-        {  0.5f,  0.5f, -0.5f, 1.0f, 1.0f },
-        { -0.5f,  0.5f,  0.5f, 0.0f, 0.0f },
-
-        // bottom face
-        {  0.5f, -0.5f,  0.5f, 0.0f, 0.0f },
-        { -0.5f, -0.5f, -0.5f, 1.0f, 1.0f },
-        {  0.5f, -0.5f, -0.5f, 0.0f, 1.0f },
-        { -0.5f, -0.5f,  0.5f, 1.0f, 0.0f },
-    };
-
-    int vBufferSize = sizeof(vList);
-
-    // create default heap
-    // default heap is memory on the GPU. Only the GPU has access to this memory
-    // To get data into this heap, we will have to upload the data using
-    // an upload heap
-    m_device->CreateCommittedResource(
-        &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT), // a default heap
-        D3D12_HEAP_FLAG_NONE, // no flags
-        &CD3DX12_RESOURCE_DESC::Buffer(vBufferSize), // resource description for a buffer
-        D3D12_RESOURCE_STATE_COPY_DEST, // we will start this heap in the copy destination state since we will copy data
-                                        // from the upload heap to this heap
-        nullptr, // optimized clear value must be null for this type of resource. used for render targets and depth/stencil buffers
-        IID_PPV_ARGS(&m_vertexBuffer));
-
-    // we can give resource heaps a name so when we debug with the graphics debugger we know what resource we are looking at
-    m_vertexBuffer->SetName(L"Vertex Buffer Resource Heap");
-
-    // create upload heap
-    // upload heaps are used to upload data to the GPU. CPU can write to it, GPU can read from it
-    // We will upload the vertex buffer using this heap to the default heap
-    ID3D12Resource* vBufferUploadHeap = nullptr;
-    m_device->CreateCommittedResource(
-        &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), // upload heap
-        D3D12_HEAP_FLAG_NONE, // no flags
-        &CD3DX12_RESOURCE_DESC::Buffer(vBufferSize), // resource description for a buffer
-        D3D12_RESOURCE_STATE_GENERIC_READ, // GPU will read from this buffer and copy its contents to the default heap
-        nullptr,
-        IID_PPV_ARGS(&vBufferUploadHeap));
-    vBufferUploadHeap->SetName(L"Vertex Buffer Upload Resource Heap");
-
-    // store vertex buffer in upload heap
-    D3D12_SUBRESOURCE_DATA vertexData = {};
-    vertexData.pData = reinterpret_cast<BYTE*>(vList); // pointer to our vertex array
-    vertexData.RowPitch = vBufferSize; // size of all our triangle vertex data
-    vertexData.SlicePitch = vBufferSize; // also the size of our triangle vertex data
-
-    // we are now creating a command with the command list to copy the data from
-    // the upload heap to the default heap
-    if (!vBufferUploadHeap)
-    {
+    m_scene = new Scene;
+    if (!m_scene->LoadMesh(MODELFILENAME))
         return false;
-    }
-    else
-    {
-        UpdateSubresources(m_commandList, m_vertexBuffer, vBufferUploadHeap, 0, 0, 1, &vertexData);
-    }
 
-    // transition the vertex buffer data from copy destination state to vertex buffer state
-    m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_vertexBuffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
-
-
-    // Create index buffer
-    // a quad (2 triangles)
-    DWORD iList[] = {
-        // ffront face
-        0, 1, 2, // first triangle
-        0, 3, 1, // second triangle
-
-        // left face
-        4, 5, 6, // first triangle
-        4, 7, 5, // second triangle
-
-        // right face
-        8, 9, 10, // first triangle
-        8, 11, 9, // second triangle
-
-        // back face
-        12, 13, 14, // first triangle
-        12, 15, 13, // second triangle
-
-        // top face
-        16, 17, 18, // first triangle
-        16, 19, 17, // second triangle
-
-        // bottom face
-        20, 21, 22, // first triangle
-        20, 23, 21, // second triangle
-   /* 0,2,1,
-    1,2,3,
-    4,5,6,
-    5,7,6,
-    0,1,5,
-    0,5,4,
-    2,6,7,
-    2,7,3,
-    0,4,6,
-    0,6,2,
-    1,3,7,
-    1,7,5,*/
-    };
-
-    int iBufferSize = sizeof(iList);
-    m_numCubeIndices = sizeof(iList) / sizeof(DWORD);
-    // create default heap to hold index buffer
-    m_device->CreateCommittedResource(
-        &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT), // a default heap
-        D3D12_HEAP_FLAG_NONE, // no flags
-        &CD3DX12_RESOURCE_DESC::Buffer(iBufferSize), // resource description for a buffer
-        D3D12_RESOURCE_STATE_COPY_DEST, // start in the copy destination state
-        nullptr, // optimized clear value must be null for this type of resource
-        IID_PPV_ARGS(&m_indexBuffer));
-
-    // create upload heap to upload index buffer
-    ID3D12Resource* iBufferUploadHeap;
-    m_device->CreateCommittedResource(
-        &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), // upload heap
-        D3D12_HEAP_FLAG_NONE, // no flags
-        &CD3DX12_RESOURCE_DESC::Buffer(vBufferSize), // resource description for a buffer
-        D3D12_RESOURCE_STATE_GENERIC_READ, // GPU will read from this buffer and copy its contents to the default heap
-        nullptr,
-        IID_PPV_ARGS(&iBufferUploadHeap));
-    iBufferUploadHeap->SetName(L"Index Buffer Upload Resource Heap");
-
-    // store vertex buffer in upload heap
-    D3D12_SUBRESOURCE_DATA indexData = {};
-    indexData.pData = reinterpret_cast<BYTE*>(iList); // pointer to our index array
-    indexData.RowPitch = iBufferSize; // size of all our index buffer
-    indexData.SlicePitch = iBufferSize; // also the size of our index buffer
-
-    // we are now creating a command with the command list to copy the data from
-    // the upload heap to the default heap
-    if (!iBufferUploadHeap)
-    {
+    if (!m_scene->LoadAnimation(ANIMATIONFILENAME))
         return false;
-    }
-    else
-    {
-        UpdateSubresources(m_commandList, m_indexBuffer, iBufferUploadHeap, 0, 0, 1, &indexData);
-    }
 
-    // transition the vertex buffer data from copy destination state to vertex buffer state
-    m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_indexBuffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
+    //m_scene->testAnimationFunc(6);
+    m_scene->currentMesh.GenerateMeshlets();
 
-    // Now we execute the command list to upload the initial assets (triangle data)
+    m_scene->CreateVertexBuffers(m_device, m_commandList);
+
+
+
+
+
+
     m_commandList->Close();
     ID3D12CommandList* ppCommandLists[] = { m_commandList };
     m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
-    // create a vertex buffer view for the triangle. We get the GPU memory address to the vertex pointer using the GetGPUVirtualAddress() method
-    m_indexBufferView.BufferLocation = m_indexBuffer->GetGPUVirtualAddress();
-    m_indexBufferView.Format = DXGI_FORMAT_R32_UINT; // 32-bit unsigned integer (this is what a dword is, double word, a word is 2 bytes)
-    m_indexBufferView.SizeInBytes = iBufferSize;
-
-    // create a vertex buffer view for the triangle. We get the GPU memory address to the vertex pointer using the GetGPUVirtualAddress() method
-    m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
-    m_vertexBufferView.StrideInBytes = sizeof(Vertex);
-    m_vertexBufferView.SizeInBytes = vBufferSize;
-
-
-    // increment the fence value now, otherwise the buffer might not be uploaded by the time we start drawing
     Signal();
 
     WaitForNextFrameBuffers(m_swapChain->GetCurrentBackBufferIndex());
 
-    iBufferUploadHeap->Release();
-    vBufferUploadHeap->Release();
-
-
-    
-
-    
+    m_scene->currentMesh.ReleaseUploadHeaps();
 
     return true;
 }
 
-bool Direct3D12::InitDepthTesting(int width, int height)
+bool Direct3D12::InitDepthTesting()
 {
     HRESULT hr;
 
@@ -1202,7 +989,7 @@ bool Direct3D12::InitDepthTesting(int width, int height)
     m_device->CreateCommittedResource(
         &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
         D3D12_HEAP_FLAG_NONE,
-        &CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, width, height, 1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL),
+        &CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, m_windowWidth, m_windowHeight, 1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL),
         D3D12_RESOURCE_STATE_DEPTH_WRITE,
         &depthOptimizedClearValue,
         IID_PPV_ARGS(&m_depthStencilBuffer)
@@ -1214,65 +1001,24 @@ bool Direct3D12::InitDepthTesting(int width, int height)
     return true;
 }
 
-void Direct3D12::SetViewportSR(int width, int height)
+void Direct3D12::SetViewportSR()
 {
     // Fill out the Viewport
     m_viewport.TopLeftX = 0;
     m_viewport.TopLeftY = 0;
-    m_viewport.Width = (float)width;
-    m_viewport.Height = (float)height;
+    m_viewport.Width = (float)m_windowWidth;
+    m_viewport.Height = (float)m_windowHeight;
     m_viewport.MinDepth = 0.0f;
     m_viewport.MaxDepth = 1.0f;
 
     // Fill out a scissor rect
     m_scissorRect.left = 0;
     m_scissorRect.top = 0;
-    m_scissorRect.right = width;
-    m_scissorRect.bottom = height;
+    m_scissorRect.right = m_windowWidth;
+    m_scissorRect.bottom = m_windowHeight;
 }
 
-void Direct3D12::BuildCamMatrices(int width, int height)
-{
-
-    // build projection and view matrix
-    DirectX::XMMATRIX tmpMat = DirectX::XMMatrixPerspectiveFovLH(45.0f * (3.14f / 180.0f), (float)width / (float)height, 0.1f, 1000.0f);
-    XMStoreFloat4x4(&m_cameraProjMat, tmpMat);
-
-    // set starting camera state
-    m_cameraPosition = DirectX::XMFLOAT4(0.0f, 2.0f, -4.0f, 0.0f);
-    m_cameraTarget = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
-    m_cameraUp = DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 0.0f);
-
-    // build view matrix
-    DirectX::XMVECTOR cPos = DirectX::XMLoadFloat4(&m_cameraPosition);
-    DirectX::XMVECTOR cTarg = DirectX::XMLoadFloat4(&m_cameraTarget);
-    DirectX::XMVECTOR cUp = DirectX::XMLoadFloat4(&m_cameraUp);
-    tmpMat = DirectX::XMMatrixLookAtLH(cPos, cTarg, cUp);
-    XMStoreFloat4x4(&m_cameraViewMat, tmpMat);
-
-    // set starting cubes position
-    // first cube
-    m_cube1Position = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f); // set cube 1's position
-    DirectX::XMVECTOR posVec = XMLoadFloat4(&m_cube1Position); // create xmvector for cube1's position
-
-    tmpMat = DirectX::XMMatrixTranslationFromVector(posVec); // create translation matrix from cube1's position vector
-    DirectX::XMStoreFloat4x4(&m_cube1RotMat, DirectX::XMMatrixIdentity()); // initialize cube1's rotation matrix to identity matrix
-    DirectX::XMStoreFloat4x4(&m_cube1WorldMat, tmpMat); // store cube1's world matrix
-
-    // second cube
-    m_cube2PositionOffset = DirectX::XMFLOAT4(1.5f, 0.0f, 0.0f, 0.0f);
-    posVec = DirectX::XMLoadFloat4(&m_cube2PositionOffset); // create xmvector for cube2's position
-                                                            // we are rotating around cube1 here, so add cube2's position to cube1
-
-
-    tmpMat = DirectX::XMMatrixTranslationFromVector(posVec); // create translation matrix from cube2's position offset vector
-    DirectX::XMStoreFloat4x4(&m_cube2RotMat, DirectX::XMMatrixIdentity()); // initialize cube2's rotation matrix to identity matrix
-    DirectX::XMStoreFloat4x4(&m_cube2WorldMat, tmpMat); // store cube2's world matrix
-
-
-}
-
-bool Direct3D12::LoadTextures()
+bool Direct3D12::LoadTextures(LPCWSTR texturepath)
 {
     HRESULT hr;
 
@@ -1292,7 +1038,7 @@ bool Direct3D12::LoadTextures()
     D3D12_RESOURCE_DESC textureDesc;
     int imageBytesPerRow;
     BYTE* imageData;
-    int imageSize = LoadImageDataFromFile(&imageData, textureDesc, testtexturename, imageBytesPerRow);
+    int imageSize = LoadImageDataFromFile(&imageData, textureDesc, texturepath, imageBytesPerRow);
 
     // make sure we have data
     if (imageSize <= 0)

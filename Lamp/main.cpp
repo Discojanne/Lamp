@@ -16,6 +16,60 @@ int Height = 600;
 // is window full screen?
 bool FullScreen = false;
 
+struct Timer
+{
+	double timerFrequency = 0.0;
+	long long lastFrameTime = 0;
+	long long lastSecond = 0;
+	double frameDelta = 0;
+	int fps = 0;
+	float fpsSum = 0;
+	int iterator = 0;
+	float fpstracker = 0;
+
+	Timer()
+	{
+		LARGE_INTEGER li;
+		QueryPerformanceFrequency(&li);
+
+		// seconds
+		timerFrequency = double(li.QuadPart);
+
+		// milliseconds
+		//timerFrequency = double(li.QuadPart) / 1000.0;
+
+		// microseconds
+		//timerFrequency = double(li.QuadPart) / 1000000.0;
+
+		QueryPerformanceCounter(&li);
+		lastFrameTime = li.QuadPart;
+	}
+
+	// Call this once per frame
+	double GetFrameDelta()
+	{
+		LARGE_INTEGER li;
+		QueryPerformanceCounter(&li);
+		frameDelta = double(li.QuadPart - lastFrameTime) / timerFrequency;
+		if (frameDelta > 0) {
+			fpstracker += frameDelta;
+			iterator++;
+			fpsSum += 1 / frameDelta;
+			if (fpstracker > 0.5f)
+			{
+				fps = fpsSum / iterator;
+				fpstracker = 0;
+				iterator = 0;
+				fpsSum = 0;
+			}
+		}
+		lastFrameTime = li.QuadPart;
+		return frameDelta;
+	}
+};
+
+Timer timer;
+
 bool InitializeWindow(HINSTANCE hInstance, int ShowWnd, int width, int height, bool fullscreen);
 void gameloop();
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -114,6 +168,7 @@ bool InitializeWindow(HINSTANCE hInstance,int ShowWnd,int width, int height,bool
 	ShowWindow(hwnd, ShowWnd);
 	UpdateWindow(hwnd);
 
+
 	return true;
 }
 
@@ -133,17 +188,18 @@ void gameloop() {
 		}
 		else {
 			// run game code
-			D3D12RendererPointer->Update();
+			double dt = timer.GetFrameDelta();
+			D3D12RendererPointer->Update(dt);
 			D3D12RendererPointer->Render();
 
 
-			//WindowTitle = "Lamp Fps:444";
-			static int a = 0;
-			a++;
-			if (a > 100)
+			static float a = 0.0f;
+			a += dt;
+			if (a > 0.05f)
 			{
-				SetWindowTextA(hwnd, "Lamp Fps:444");
-				a = 0;
+				std::string text = std::to_string(timer.fps) + ", AnimFrame: " + std::to_string(D3D12RendererPointer->getAnimIndex());
+				SetWindowTextA(hwnd, text.c_str());
+				a = 0.0f;
 			}
 			
 		}

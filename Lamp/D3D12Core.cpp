@@ -208,7 +208,7 @@ bool Direct3D12::UpdatePipeline()
 
     // Clear the render target by using the ClearRenderTargetView command
     //const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
-    const float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+    const float clearColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
     m_commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
     m_commandList->ClearDepthStencilView(m_dsDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 

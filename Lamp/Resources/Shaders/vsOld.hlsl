@@ -27,8 +27,8 @@ struct VS_OUTPUT
 	float4 pos : SV_POSITION;
 	float2 uv : TEXCOORD0;
 	float3 norm : NORMAL0;
-	float3 lightDir : LIGHTDIR;
-	//float4 color : COLOR0;
+	float3 tang : TANGENT0;
+	float3 bitang : BITANGENT0;
 };
 
 [RootSignature(ROOT_SIG2)]
@@ -43,24 +43,15 @@ VS_OUTPUT VSmain(VS_INPUT input, uint id : SV_InstanceID)
 	
 	float3 tmpPos = mul(float4(input.pos, 1.0f), (float4x3) T);
 	
-	// Lighting preparation
-	output.lightDir = mul(float3(0.0f, 0.0f, 1.0f), (float3x3) normalMatrix);
-	
 	float3 _tang = mul((float3x3) T, input.tang);
 	float3 _bitang = mul((float3x3) T, input.bitang);
 	float3 _norm = mul((float3x3) T, input.norm);
 	
-	// take lightDir to TANGENT space
-	output.lightDir = float3(
-       dot(output.lightDir, _tang),
-       dot(output.lightDir, _bitang),
-       dot(output.lightDir, _norm)
-    );
-	
 	output.pos = mul(float4(tmpPos.xyz, 1.0f), wvpMat);
 	output.uv = input.uv;
-	output.norm = _norm;
-	output.lightDir = float3(0.0f, 0.0f, 1.0f); //normalize(output.lightDir);
+	output.norm		= _norm;
+	output.tang		= _tang;
+	output.bitang	= _bitang;
 	
 	//output.color = float4(1.0f, 1.0f, 1.0f, 1.0f);
 	//output.pos = mul(float4(input.pos, 1.0f), wvpMat);

@@ -10,8 +10,8 @@ struct VS_OUTPUT
 	float4 pos : SV_POSITION;
 	float2 uv : TEXCOORD0;
 	float3 norm : NORMAL0;
-	float3 lightDir : LIGHTDIR;
-	//float4 color : COLOR0;
+	float3 tang : TANGENT0;
+	float3 bitang : BITANGENT0;
 };
 
 
@@ -23,14 +23,18 @@ float4 PSmain(VS_OUTPUT input) : SV_TARGET
 	//float cs3 = input.color.x * 1667 % 255 / 255;
 	
 	
-	float3 bump = t1.Sample(s1, input.uv).rgb * 2.0 - float3(1.0f,1.0f,1.0f);
+	float3 normalMap = t1.Sample(s1, input.uv).rgb * 2.0 - 1.0f;
 	float3 specCol;// = t2.Sample(s1, input.uv).rgb;
+	float3 lightDir = float3(0.0f, 0.0f, 1.0f);
+	
+	float3 bump = (normalMap.x * input.tang) + (normalMap.y * input.bitang) + (normalMap.z * input.norm);
+	bump = normalize(bump);
 	
 	/* uncomment to remove normalmap and spec map */
     //bump = float3(0.0f,0.0f,1.0f);
-	specCol = float3(0.2f, 0.2f, 0.2f);
+	specCol = float3(0.1f, 0.1f, 0.1f);
 	
-	float diffuse = dot(input.lightDir, input.norm);
+	float diffuse = dot(lightDir, bump);
 	const float3 baseCol = float3(0.80f, 0.80f, 1.0f);
 	
 	float4 color = saturate(float4(1.0f, 1.0f, 1.0f, 1.0f));

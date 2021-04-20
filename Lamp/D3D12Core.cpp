@@ -116,6 +116,7 @@ void Direct3D12::Update(double dt)
     m_scene->Update(dt);
 
     m_cbPerObject.wvpMat = DirectX::XMMatrixTranspose(m_scene->cam.GenerateWVP());
+    m_cbPerObject.normalMatrix = DirectX::XMMatrixTranspose(m_scene->cam.GenerateNormalMatrix());
 
     static float time = 0.0f;
     time += dt;
@@ -775,7 +776,7 @@ bool Direct3D12::InitShaderLayoutGPS()
     DXILShaderCompiler::Desc desc;
     desc.source = nullptr;
     desc.sourceSize = 0;
-    desc.filePath = L"Resources/Shaders/vsLBold.hlsl";
+    desc.filePath = L"Resources/Shaders/vsOld.hlsl";
     desc.entryPoint = L"VSmain";
     desc.targetProfile = L"vs_6_5";
 
@@ -790,6 +791,27 @@ bool Direct3D12::InitShaderLayoutGPS()
     D3D12_SHADER_BYTECODE vertexShaderBytecode = {};
     vertexShaderBytecode.BytecodeLength = vertexShader->GetBufferSize();
     vertexShaderBytecode.pShaderBytecode = vertexShader->GetBufferPointer();
+
+    /// compile pixel shader for vs 
+    IDxcBlob* pixelShaderVertex;
+
+    desc.source = nullptr;
+    desc.sourceSize = 0;
+    desc.filePath = L"Resources/Shaders/psVertex.hlsl";
+    desc.entryPoint = L"PSmain";
+    desc.targetProfile = L"ps_6_5";
+
+    if (FAILED(m_shaderCompiler->compile(&desc, &pixelShaderVertex)))
+    {
+        MessageBox(0, L"Failed to complie pixel shader",
+            L"Error", MB_OK);
+
+        return false;
+    }
+    // fill out shader bytecode structure for pixel shader
+    D3D12_SHADER_BYTECODE pixelShaderVertexBytecode = {};
+    pixelShaderVertexBytecode.BytecodeLength = pixelShaderVertex->GetBufferSize();
+    pixelShaderVertexBytecode.pShaderBytecode = pixelShaderVertex->GetBufferPointer();
 
     /// compile mesh shader
     IDxcBlob* meshShader;
@@ -817,7 +839,7 @@ bool Direct3D12::InitShaderLayoutGPS()
 
     desc.source = nullptr;
     desc.sourceSize = 0;
-    desc.filePath = L"Resources/Shaders/ps.hlsl";
+    desc.filePath = L"Resources/Shaders/psMesh.hlsl";
     desc.entryPoint = L"PSmain";
     desc.targetProfile = L"ps_6_5";
 
@@ -837,6 +859,10 @@ bool Direct3D12::InitShaderLayoutGPS()
     D3D12_INPUT_ELEMENT_DESC inputLayout[] =
     {
         { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        { "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        { "TANGENT",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        { "BITANGENT",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
         { "BONEINDEX",   0, DXGI_FORMAT_R32G32B32A32_SINT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
         { "BONEWEIGHT",   0, DXGI_FORMAT_R32G32B32A32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
     };
@@ -871,7 +897,7 @@ bool Direct3D12::InitShaderLayoutGPS()
     psoDesc.InputLayout = inputLayoutDesc; // the structure describing our input layout
     psoDesc.pRootSignature = m_rootSignature; // the root signature that describes the input data this pso needs
     psoDesc.VS = vertexShaderBytecode; // structure describing where to find the vertex shader bytecode and how large it is
-    psoDesc.PS = pixelShaderBytecode; // same as VS but for pixel shader
+    psoDesc.PS = pixelShaderVertexBytecode; // same as VS but for pixel shader
     //psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT; // type of topology we are drawing
     psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE; // type of topology we are drawing
     //psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE; // type of topology we are drawing

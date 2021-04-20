@@ -92,6 +92,10 @@ bool Scene::CreateVertexBuffers(ID3D12Device6* device, ID3D12GraphicsCommandList
     {
         VertLite tmpVL;
         tmpVL.pos = currentMesh.vert[i].pos;
+        tmpVL.uv = currentMesh.vert[i].uv;
+        tmpVL.norm = currentMesh.vert[i].norm;
+        tmpVL.tang = currentMesh.vert[i].tang;
+        tmpVL.bitang = currentMesh.vert[i].bitang;
         for (size_t j = 0; j < 4; j++)
         {
             tmpVL.boneIndex[j] = currentMesh.vert[i].boneIndex[j];

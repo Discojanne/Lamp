@@ -34,6 +34,7 @@ public:
 	struct ConstantBufferPerObject {
 
 		DirectX::XMMATRIX wvpMat;
+		DirectX::XMMATRIX normalMatrix; // transInverseModelView
 		DirectX::XMMATRIX bonePoseMatrices[32];
 	};
 

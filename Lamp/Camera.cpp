@@ -40,6 +40,18 @@ DirectX::XMMATRIX Camera::GenerateWVP(DirectX::XMMATRIX worldMatrixOfObject)
     return wvpMat;
 }
 
+DirectX::XMMATRIX Camera::GenerateNormalMatrix(DirectX::XMMATRIX worldMatrixOfObject)
+{
+    DirectX::XMMATRIX viewMat = DirectX::XMMatrixLookAtLH(DirectX::XMLoadFloat3(&m_cameraPosition), DirectX::XMLoadFloat3(&m_lookDirection), DirectX::XMLoadFloat3(&m_cameraUp));
+
+    // swapped x and y to make it work temporarly
+    viewMat = viewMat * DirectX::XMMatrixRotationX(m_rotY) * DirectX::XMMatrixRotationY(m_rotX);
+
+    DirectX::XMMATRIX wvMat = worldMatrixOfObject * viewMat; // create wvp matrix
+    
+    return DirectX::XMMatrixInverse(nullptr, wvMat);
+}
+
 void Camera::Update(float dt)
 {
 

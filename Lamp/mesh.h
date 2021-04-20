@@ -75,6 +75,11 @@ class VertLite {
 public:
     VertLite() {}
     XMFLOAT3 pos; // xyz position
+    XMFLOAT2 uv; // texture position
+    XMFLOAT3 norm; // normal
+
+    XMFLOAT3 tang; // tangent dir
+    XMFLOAT3 bitang; // bi-tangent dir
 
     int boneIndex[MAX_BONES];
     float boneWeight[MAX_BONES];
@@ -89,16 +94,6 @@ public:
 
 };
 
-//class Meshlet2 {
-//public:
-//    Meshlet2(unsigned int vCount, unsigned int vOffset, unsigned int pCount, unsigned int pOffset)
-//    : VertCount(vCount), VertOffset(vOffset), PrimCount(pCount), PrimOffset(pOffset)
-//    {}
-//    unsigned int VertCount;
-//    unsigned int VertOffset;
-//    unsigned int PrimCount;
-//    unsigned int PrimOffset;
-//};
 
 class Mesh{
 public:

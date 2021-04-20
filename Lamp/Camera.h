@@ -14,6 +14,7 @@ public:
 
 	void init(int w, int h);
 	DirectX::XMMATRIX GenerateWVP(DirectX::XMMATRIX worldMatrixOfObject = DirectX::XMMatrixIdentity());
+	DirectX::XMMATRIX GenerateNormalMatrix(DirectX::XMMATRIX worldMatrixOfObject = DirectX::XMMatrixIdentity());
 	void Update(float dt);
 
 	void OnKeyDown(int key);

@@ -4,6 +4,9 @@
                   SRV(t1), \
                   SRV(t2), \
                   SRV(t3)"
+//\
+//                  SRV(t4), \
+//                  StaticSampler(s0)"
 
 
 //Texture2D t1 : register(t0);
@@ -11,25 +14,28 @@
 
 cbuffer ConstantBufferTest : register(b0)
 {
-    float4x4 wvpMat;
+	float4x4 wvpMat;
+	float4x4 normalMatrix;
 	float4x4 boneMatrix[32];
 };
 
 struct VertexOut
 {
 	float4 pos : SV_POSITION;
-	float4 color : COLOR0;
-	//float2 texCoord : TEXCOORD;
-	//float3 normal : NORMAL;
-    //   //new stuff
-	//float3 color : COLOR;
-	//float3 lightDir : LIGHTDIR;
-	//float v_norm_err : ERR;
+	float2 uv : TEXCOORD0;
+	float3 norm : NORMAL0;
+	float3 lightDir : LIGHTDIR;
+	//float4 color : COLOR0;
 };
 
 struct Vertex
 {
 	float3 pos;
+	float2 uv;
+	float3 norm;
+	float3 tang;
+	float3 bitang;
+	
 	int4 boneIndex;
 	float4 boneWeight;
 };
@@ -102,7 +108,10 @@ void MSmain(in uint threadID : SV_GroupThreadID, in uint groupID : SV_GroupID,
         //pos.x += 3.0f;
 		
 		outVerts[threadID].pos = TransformPos(pos);
-		outVerts[threadID].color = (int)groupID * float4(1.0f,1.0f,1.0f,1.0f);
+		outVerts[threadID].uv = Vertices[vertexIndex].uv;
+		outVerts[threadID].norm = Vertices[vertexIndex].norm;
+		outVerts[threadID].lightDir = float3(0.0f,0.0f,1.0f);
+		//outVerts[threadID].color = (int)groupID * float4(1.0f,1.0f,1.0f,1.0f);
 
 	}
 }

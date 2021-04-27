@@ -8,7 +8,7 @@
 
 class DXILShaderCompiler;
 
-#define testtexturename L"Resources/textures/nightmare3.png"
+//#define testtexturename L"Resources/textures/nightmare3.png"
 
 //#define MODELFILENAME "cube"
 #define MODELFILENAME "bride_dress"

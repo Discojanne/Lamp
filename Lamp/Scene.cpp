@@ -51,6 +51,7 @@ bool Scene::LoadMesh(std::string filename)
     currentMesh.unifyVertices(); // comment this line for flat shading!
     currentMesh.computeTangentDirs();
     currentMesh.computeDeformFactors();
+    
 
     std::string basename = filename;
 
@@ -101,6 +102,12 @@ bool Scene::CreateVertexBuffers(ID3D12Device6* device, ID3D12GraphicsCommandList
             tmpVL.boneIndex[j] = currentMesh.vert[i].boneIndex[j];
             tmpVL.boneWeight[j] = currentMesh.vert[i].boneWeight[j];
         }
+        for (size_t k = 0; k < 3; k++)
+        {
+            tmpVL.deformFactorsTang[k] = currentMesh.vert[i].deformFactorsTang[k];
+            tmpVL.deformFactorsBtan[k] = currentMesh.vert[i].deformFactorsBtan[k];
+        }
+        tmpVL.isTextureFlipped = currentMesh.vert[i].isTextureFlipped;
         currentMesh.vertLiteVector.push_back(tmpVL);
     }
 

@@ -154,7 +154,7 @@ void Direct3D12::Update(double dt)
 
     for (size_t i = 0; i < m_scene->currentAni.pose[i].matr.size(); i++)
     {
-        m_cbPerObject.bonePoseMatrices[i] = (m_scene->currentAni.pose[m_anitmaionframe].matr[i]);
+        m_cbPerObject.bonePoseMatrices[i] = DirectX::XMMatrixTranspose(m_scene->currentAni.pose[m_anitmaionframe].matr[i]);
     }
 
     memcpy(m_cbvGPUAddress[m_frameIndex], &m_cbPerObject, sizeof(ConstantBufferPerObject));
@@ -776,7 +776,7 @@ bool Direct3D12::InitShaderLayoutGPS()
     DXILShaderCompiler::Desc desc;
     desc.source = nullptr;
     desc.sourceSize = 0;
-    desc.filePath = L"Resources/Shaders/vsOld.hlsl";
+    desc.filePath = L"Resources/Shaders/vsNew.hlsl";
     desc.entryPoint = L"VSmain";
     desc.targetProfile = L"vs_6_5";
 
@@ -864,7 +864,10 @@ bool Direct3D12::InitShaderLayoutGPS()
         { "TANGENT",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
         { "BITANGENT",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
         { "BONEINDEX",   0, DXGI_FORMAT_R32G32B32A32_SINT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-        { "BONEWEIGHT",   0, DXGI_FORMAT_R32G32B32A32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
+        { "BONEWEIGHT",   0, DXGI_FORMAT_R32G32B32A32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        { "DEFORMTANG",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        { "DEFORMTBTAN",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        { "FLIPPED",   0, DXGI_FORMAT_R32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
     };
 
     /*D3D12_INPUT_ELEMENT_DESC inputLayout[] =

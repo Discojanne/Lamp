@@ -38,6 +38,10 @@ struct Vertex
 	
 	int4 boneIndex;
 	float4 boneWeight;
+	
+	float3 deformFactorsTang;
+	float3 deformFactorsBitang;
+	float isTextureFlipped;
 };
 
 struct Meshlet
@@ -76,7 +80,8 @@ float4 Skin(uint vertexID)
 	for (int i = 0; i < 4; i++)
 		T += boneMatrix[Vertices[vertexID].boneIndex[i]] * Vertices[vertexID].boneWeight[i];
         
-	float3 tmpPos = mul(float4(Vertices[vertexID].pos, 1.0f), (float4x3) T);
+	//float3 tmpPos = mul(float4(Vertices[vertexID].pos, 1.0f), (float4x3) T);
+	float3 tmpPos = mul(T, float4(Vertices[vertexID].pos, 1.0f));
 	return float4(tmpPos, 1.0f);
 }
 
@@ -109,7 +114,7 @@ void MSmain(in uint threadID : SV_GroupThreadID, in uint groupID : SV_GroupID,
 		
 		outVerts[threadID].pos = TransformPos(pos);
 		outVerts[threadID].uv = Vertices[vertexIndex].uv;
-		outVerts[threadID].norm = Vertices[vertexIndex].norm;
+		outVerts[threadID].norm = (float4(Vertices[vertexIndex].norm, 0.0f)).xyz;
 		outVerts[threadID].lightDir = float3(0.0f,0.0f,1.0f);
 		//outVerts[threadID].color = (int)groupID * float4(1.0f,1.0f,1.0f,1.0f);
 

@@ -83,6 +83,12 @@ public:
 
     int boneIndex[MAX_BONES];
     float boneWeight[MAX_BONES];
+
+    // send in as float3 or maxbones - 1
+    float deformFactorsTang[MAX_BONES - 1]; /* see paper */
+    float deformFactorsBtan[MAX_BONES - 1]; /* see paper */
+
+    float isTextureFlipped;
 };
 
 class Face{

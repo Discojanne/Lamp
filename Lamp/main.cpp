@@ -197,7 +197,9 @@ void gameloop() {
 			a += dt;
 			if (a > 0.05f)
 			{
-				std::string text = std::to_string(timer.fps) + ", AnimFrame: " + std::to_string(D3D12RendererPointer->getAnimIndex());
+				std::string text = std::to_string(timer.fps) + ", AnimFrame: " 
+					+ std::to_string(D3D12RendererPointer->getAnimIndex())
+					+ "                                                  Mesh shader                                                 Vertex Shader";
 				SetWindowTextA(hwnd, text.c_str());
 				a = 0.0f;
 			}

@@ -250,7 +250,9 @@ bool Direct3D12::UpdatePipeline()
     m_commandList->SetGraphicsRootShaderResourceView(2, m_scene->currentMesh.VertResSB->GetGPUVirtualAddress());
     m_commandList->SetGraphicsRootShaderResourceView(3, m_scene->currentMesh.IndexResSB->GetGPUVirtualAddress());
     m_commandList->SetGraphicsRootShaderResourceView(4, m_scene->currentMesh.UniqueResSB->GetGPUVirtualAddress());
-    
+    //m_commandList->SetGraphicsRootDescriptorTable(5, m_mainDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+    //m_commandList->SetGraphicsRootShaderResourceView(5, m_scene->);
+
     m_commandList->DispatchMesh(m_scene->currentMesh.meshletVector.size(), 1, 1);
 
     //m_commandList->DispatchMesh(m_scene->drawThisMany, 1, 1);

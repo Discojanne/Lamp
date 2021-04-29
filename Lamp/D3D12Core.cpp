@@ -130,7 +130,7 @@ void Direct3D12::Update(double dt)
         }
         time = 0;
     }
-    //m_anitmaionframe = 5;
+    //m_anitmaionframe = 30;
 
     // CPU Skinning - only do output.pos = mul(float4(input.pos, 1.0f), wvpMat); in shader
     //m_scene->testAnimationFunc(m_anitmaionframe);

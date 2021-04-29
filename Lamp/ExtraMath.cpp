@@ -1,5 +1,31 @@
 #include "ExtraMath.h"
 
+// m * f = vector
+XMFLOAT4 MulVec4Matrix4x4(XMFLOAT4 f, XMMATRIX m)
+{
+    float x = m.r[0].m128_f32[0] * f.x
+        + m.r[0].m128_f32[1] * f.y
+        + m.r[0].m128_f32[2] * f.z
+        + m.r[0].m128_f32[3] * f.w;
+
+    float y = m.r[1].m128_f32[0] * f.x
+        + m.r[1].m128_f32[1] * f.y
+        + m.r[1].m128_f32[2] * f.z
+        + m.r[1].m128_f32[3] * f.w;
+
+    float z = m.r[2].m128_f32[0] * f.x
+        + m.r[2].m128_f32[1] * f.y
+        + m.r[2].m128_f32[2] * f.z
+        + m.r[2].m128_f32[3] * f.w;
+
+    float w = m.r[3].m128_f32[0] * f.x
+        + m.r[3].m128_f32[1] * f.y
+        + m.r[3].m128_f32[2] * f.z
+        + m.r[3].m128_f32[3] * f.w;
+
+    return XMFLOAT4(x, y, z, w);
+}
+
 XMFLOAT3 SubtractFloat3(XMFLOAT3 a, XMFLOAT3 b)
 {
     float x = a.x - b.x;

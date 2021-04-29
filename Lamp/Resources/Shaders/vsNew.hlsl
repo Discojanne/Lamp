@@ -96,10 +96,10 @@ VS_OUTPUT VSmain(VS_INPUT input, uint id : SV_InstanceID)
 	_bitang = normalize(_bitang);
 	float3 _norm = normalize(cross(_tang, _bitang)) * input.isTextureFlipped;
 	
-	output.lightDir = float3(0.0f,0.0f,-1.0f);
+	output.lightDir = float3(0.0f, 0.0f, -1.0f);
 	
 	// take lightDir to OBJECT space
-	output.lightDir = mul(output.lightDir, (float3x3) normalMatrix);
+	output.lightDir = mul(float4(output.lightDir, 0.0f), normalMatrix).xyz;
 
     // take lightDir to TANGENT space
 	output.lightDir = float3(

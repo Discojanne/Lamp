@@ -383,6 +383,9 @@ void Mesh::computeDeformFactors(){
         //m.SetRow(0, e0 );
         //m.SetRow(1, e1 );
         //m.SetRow(2, n );
+
+        m = XMMatrixTranspose(m);
+
         m = XMMatrixInverse(nullptr, m);
         //m = inverse(m);
         
@@ -402,11 +405,16 @@ void Mesh::computeDeformFactors(){
                 float dw1 = vert[ pi[2] ].weightOfBone( bi ) - vert[ pi[0] ].weightOfBone( bi );
 
                 if ((dw0==0)&&(dw1==0)) continue;
-                XMVECTOR tmpvec = { dw0, dw1, 0, 0 };
+                XMFLOAT4 tmpvec = { dw0, dw1, 0, 0 };
                 //XMFLOAT3 faceWeightGradient = ( m * tmpvec ) ;
-                XMFLOAT3 faceWeightGradient;
-                XMStoreFloat3(&faceWeightGradient, XMVector3Transform(tmpvec, m));
+
+                XMFLOAT4 tmp1 = MulVec4Matrix4x4(tmpvec, m);
+
+                XMFLOAT3 faceWeightGradient = XMFLOAT3(tmp1.x, tmp1.y, tmp1.z);
+                //XMStoreFloat3(&faceWeightGradient, XMVector3Transform(tmpvec, m));
                 
+
+
                 // add it to all verteces
                 for (int z=0; z<3; z++) {
                     int k = vert[ pi[z] ].slotOfBone( bi );
@@ -418,7 +426,7 @@ void Mesh::computeDeformFactors(){
                         XMFLOAT3 e1 = SubtractFloat3(vert[pi[(z + 1) % 3]].pos, vert[pi[z]].pos);// (vert[pi[(z + 1) % 3]].pos - vert[pi[z]].pos);
                         XMFLOAT3 e2 = SubtractFloat3(vert[ pi[(z+2)%3] ].pos, vert[ pi[z] ].pos);
                         //float wedgeAngle = angle(e1,e2) * faceArea;
-                        float wedgeAngle = AngelFloat3(e1, e2) * faceArea;
+                        float wedgeAngle = Angle(e1, e2) * faceArea;
                         //vert[ pi[z] ].deformFactorsTang[k] += (vert[ pi[z] ].tang   * faceWeightGradient) * wedgeAngle;
                         vert[pi[z]].deformFactorsTang[k] += DotFloat3(vert[pi[z]].tang, faceWeightGradient) * wedgeAngle;
                         //vert[ pi[z] ].deformFactorsBtan[k] += (vert[ pi[z] ].bitang * faceWeightGradient) * wedgeAngle;

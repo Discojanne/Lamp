@@ -43,7 +43,7 @@ float4 PSmain(VS_OUTPUT input) : SV_TARGET
 
 	color.rgb = baseCol * (0.25f + 0.75f * diffuse) + specCol * pow(diffuse, 24.0f);
 	
-	//return float4(input.lightDir, 1.0f);
+	//return float4(diffuse, diffuse, diffuse, 1.0f);
 	return color;
 
 }

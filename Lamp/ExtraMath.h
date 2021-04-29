@@ -5,6 +5,8 @@
 
 using namespace DirectX;
 
+XMFLOAT4 MulVec4Matrix4x4(XMFLOAT4 f, XMMATRIX m);
+
 // a - b
 XMFLOAT3 SubtractFloat3(XMFLOAT3 a, XMFLOAT3 b);
 

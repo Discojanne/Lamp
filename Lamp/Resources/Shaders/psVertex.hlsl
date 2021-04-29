@@ -18,7 +18,7 @@ struct VS_OUTPUT
 
 float4 PSmain(VS_OUTPUT input) : SV_TARGET
 {
-	
+	//return float4(input.lightDir, 1.0f);
 	float4 color;
 	color.a = 1.0f;
 

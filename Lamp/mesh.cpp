@@ -351,9 +351,6 @@ void Mesh::computeDeformFactors(){
         for (unsigned int k=0; k<4; k++) {
             vert[vi].deformFactorsTang[k] = 0;
             vert[vi].deformFactorsBtan[k] = 0;
-
-            //vert[vi].weightGradient[k].SetZero();
-            //vert[vi].weightGradient[k] = XMFLOAT3(0, 0, 0);
         }
     }
 
@@ -367,67 +364,79 @@ void Mesh::computeDeformFactors(){
         pi[1] = face[ff].index[1];
         pi[2] = face[ff].index[2];
         
-        
         XMMATRIX m;
-        XMFLOAT3 e0 = SubtractFloat3(vert[pi[1]].pos, vert[pi[0]].pos);
-        XMFLOAT3 e1 = SubtractFloat3(vert[pi[2]].pos, vert[pi[0]].pos);
 
-        //XMFLOAT3 n = e1^e0; // cross
+        XMFLOAT3 e0;
+        e0.x = vert[pi[1]].pos.x - vert[pi[0]].pos.x;
+        e0.y = vert[pi[1]].pos.y - vert[pi[0]].pos.y;
+        e0.z = vert[pi[1]].pos.z - vert[pi[0]].pos.z;
+
+        XMFLOAT3 e1;
+        e1.x = vert[pi[2]].pos.x - vert[pi[0]].pos.x;
+        e1.y = vert[pi[2]].pos.y - vert[pi[0]].pos.y;
+        e1.z = vert[pi[2]].pos.z - vert[pi[0]].pos.z;
+
         XMFLOAT3 n = CrossFloat3(e1,e0);
-
-        //float faceArea = n.Norm();
         float faceArea = LengthFloat3(n);
+
         SetRowMatrix(m, 0, e0);
         SetRowMatrix(m, 1, e1);
         SetRowMatrix(m, 2, n);
-        //m.SetRow(0, e0 );
-        //m.SetRow(1, e1 );
-        //m.SetRow(2, n );
+
+        m = DirectX::XMMatrixTranspose(m);
+
         m = XMMatrixInverse(nullptr, m);
-        //m = inverse(m);
         
+
+
         std::vector< bool > weightsDone(nBones , false );
 
-        for (int w=0; w<3; w++) {
+        for (int w = 0; w < 3; w++) {
 
-            for (int r=0; r<4; r++) {
+            for (int r = 0; r < 4; r++) {
 
-                int bi = vert[ pi[w] ].boneIndex[r];
-                if ((bi<0) || (vert[ pi[w] ].boneWeight[r]==0)) continue;
-                if ( weightsDone[bi] ) continue;
+                int bi = vert[pi[w]].boneIndex[r];
+                if ((bi < 0) || (vert[pi[w]].boneWeight[r] == 0)) 
+                    continue;
+                if (weightsDone[bi]) 
+                    continue;
 
                 weightsDone[bi] = true;
 
                 float dw0 = vert[ pi[1] ].weightOfBone( bi ) - vert[ pi[0] ].weightOfBone( bi );
                 float dw1 = vert[ pi[2] ].weightOfBone( bi ) - vert[ pi[0] ].weightOfBone( bi );
 
-                if ((dw0==0)&&(dw1==0)) continue;
-                XMVECTOR tmpvec = { dw0, dw1, 0, 0 };
-                //XMFLOAT3 faceWeightGradient = ( m * tmpvec ) ;
+                if ((dw0 == 0) && (dw1 == 0)) continue;
+
+                DirectX::XMFLOAT4 tmpfloat4 = { dw0, dw1, 0, 0 };
+                /*XMVECTOR tmpvec = DirectX::XMLoadFloat4(&tmpfloat4);
                 XMFLOAT3 faceWeightGradient;
-                XMStoreFloat3(&faceWeightGradient, XMVector3Transform(tmpvec, m));
+                XMStoreFloat3(&faceWeightGradient, XMVector3Transform(tmpvec, m));*/
+                XMFLOAT4 tmpf4 = MulVec4Matrix4x4(tmpfloat4, m);
+                XMFLOAT3 faceWeightGradient = XMFLOAT3(tmpf4.x, tmpf4.y, tmpf4.z);
                 
                 // add it to all verteces
-                for (int z=0; z<3; z++) {
+                for (int z = 0; z < 3; z++) {
                     int k = vert[ pi[z] ].slotOfBone( bi );
-                    if (k<0) {
+                    if (k < 0) {
                         overflowCoun++;
-                        //vert[ pi[z] ].col = 0xFFFF0000;
-                        //vert[ pi[z] ].isTextureFlipped *= 1.0;
-                    } else {
-                        XMFLOAT3 e1 = SubtractFloat3(vert[pi[(z + 1) % 3]].pos, vert[pi[z]].pos);// (vert[pi[(z + 1) % 3]].pos - vert[pi[z]].pos);
-                        XMFLOAT3 e2 = SubtractFloat3(vert[ pi[(z+2)%3] ].pos, vert[ pi[z] ].pos);
-                        //float wedgeAngle = angle(e1,e2) * faceArea;
-                        float wedgeAngle = AngelFloat3(e1, e2) * faceArea;
-                        //vert[ pi[z] ].deformFactorsTang[k] += (vert[ pi[z] ].tang   * faceWeightGradient) * wedgeAngle;
+                    } 
+                    else {
+                        XMFLOAT3 e1;
+                        e1.x = vert[pi[(z + 1) % 3]].pos.x - vert[pi[z]].pos.x;
+                        e1.y = vert[pi[(z + 1) % 3]].pos.y - vert[pi[z]].pos.y;
+                        e1.z = vert[pi[(z + 1) % 3]].pos.z - vert[pi[z]].pos.z;
+
+                        XMFLOAT3 e2;
+                        e2.x = vert[pi[(z + 2) % 3]].pos.x - vert[pi[z]].pos.x;
+                        e2.y = vert[pi[(z + 2) % 3]].pos.y - vert[pi[z]].pos.y;
+                        e2.z = vert[pi[(z + 2) % 3]].pos.z - vert[pi[z]].pos.z;
+
+                        float wedgeAngle = Angle(e1, e2) * faceArea;
+
                         vert[pi[z]].deformFactorsTang[k] += DotFloat3(vert[pi[z]].tang, faceWeightGradient) * wedgeAngle;
-                        //vert[ pi[z] ].deformFactorsBtan[k] += (vert[ pi[z] ].bitang * faceWeightGradient) * wedgeAngle;
                         vert[pi[z]].deformFactorsBtan[k] += DotFloat3(vert[pi[z]].bitang, faceWeightGradient) * wedgeAngle;
-                        
-                        //vert[ pi[z] ].weightGradient[k] += faceWeightGradient * wedgeAngle;
-                        //vert[pi[z]].weightGradient[k] += MultiplyFloat3Float(faceWeightGradient, wedgeAngle);
-                        //AddToFloat3(vert[pi[z]].weightGradient[k], MultiplyFloat3Float(faceWeightGradient, wedgeAngle));
-                        summator[ pi[z] ].m128_f32[k] += wedgeAngle;
+                        summator[pi[z]].m128_f32[k] += wedgeAngle;
                         
                     }
                 }
@@ -435,30 +444,28 @@ void Mesh::computeDeformFactors(){
         }
 
     }
-
-    for (unsigned int vi=0; vi<vert.size(); vi++){
-        for (unsigned int k=0; k<4; k++) {
+    //1193
+    for (unsigned int vi = 0; vi < vert.size(); vi++) {
+        for (unsigned int k = 0; k < 4; k++) {
             if (summator[ vi ].m128_f32[k]) {
-                vert[vi].deformFactorsTang[k] /= summator[ vi ].m128_f32[k];
-                vert[vi].deformFactorsBtan[k] /= summator[ vi ].m128_f32[k];
-                //vert[vi].weightGradient[k] /= summator[ vi ].m128_f32[k];
-                //divFloat3float(vert[vi].weightGradient[k], summator[vi].m128_f32[k]);
+                vert[vi].deformFactorsTang[k] = vert[vi].deformFactorsTang[k] / summator[ vi ].m128_f32[k];
+                vert[vi].deformFactorsBtan[k] = vert[vi].deformFactorsBtan[k] / summator[ vi ].m128_f32[k];
             }
         }
     }
 
-
     // shift 1st three
-    for (unsigned int vi=0; vi<vert.size(); vi++){
-        //vert[vi].orderBoneSlotsWithWeights();
-        for (unsigned int k=0; k<3; k++) {
+    for (unsigned int vi = 0; vi < vert.size(); vi++) {
+        for (unsigned int k = 0; k < 3; k++) {
            vert[vi].deformFactorsTang[k] = vert[vi].deformFactorsTang[k+1];
            vert[vi].deformFactorsBtan[k] = vert[vi].deformFactorsBtan[k+1];
+
+           //if ( _isnanf(vert[vi].deformFactorsTang[k])) {
+           //    int b = 15;
+           //    vert[vi].pos.z += 0.00001f;
+           //}
         }
     }
-
-
-    //if (overflowCoun) qDebug("%d overflows!",overflowCoun);
 }
 
 
@@ -479,14 +486,17 @@ int Vert::slotOfBone(int bi){
 
 /* helper function */
 float Vert::weightOfBone(int i) const{
-  for ( int k=0;  k<4; k++) if (boneIndex[k]==i) return boneWeight[k];
-  return 0;
+    
+    for (int k = 0; k < 4; k++)
+        if (boneIndex[k] == i)
+            return boneWeight[k];
+    return 0;
 }
 
 void Mesh::computeTangentDirs(){
 
     // pass 1: reset tang and bitang
-    for (unsigned int vi=0; vi<vert.size(); vi++){
+    for (unsigned int vi = 0; vi < vert.size(); vi++) {
         vert[vi].tang = XMFLOAT3(0,0,0);
         vert[vi].bitang = XMFLOAT3(0,0,0);
     }
@@ -501,56 +511,75 @@ void Mesh::computeTangentDirs(){
         vi[1] = face[ff].index[1];
         vi[2] = face[ff].index[2];
 
-        XMFLOAT2 s0=vert[ vi[0] ].uv;
-        XMFLOAT2 s1=vert[ vi[1] ].uv;
-        XMFLOAT2 s2=vert[ vi[2] ].uv;
-        s1 = SubtractFloat2(s1,s0);
-        s2 = SubtractFloat2(s2, s0);
-        float det = detFloat2(s1, s2);// s1^ s2;
-        if (!det) continue;
-        float aT,bT,aB,bB;
-        aT = -s2.x/det;  bT =  s1.x/det;
-        aB =  s2.y/det;  bB = -s1.y/det;
+        XMFLOAT2 s0 = vert[vi[0]].uv;
+        XMFLOAT2 s1 = vert[vi[1]].uv;
+        XMFLOAT2 s2 = vert[vi[2]].uv;
+        s1.x = s1.x - s0.x;
+        s1.y = s1.y - s0.y;
 
-        XMFLOAT3 p0=vert[ vi[0] ].pos;
-        XMFLOAT3 p1=vert[ vi[1] ].pos;
-        XMFLOAT3 p2=vert[ vi[2] ].pos;
-        //p1 -= p0; 
-        p1 = SubtractFloat3(p1, p0);
-        p2 = SubtractFloat3(p2, p0);
-        //float faceArea = (p1^p2).Norm();
+        s2.x = s2.x - s0.x;
+        s2.y = s2.y - s0.y;
+
+        float det = s1.x * s2.y - s1.y * s2.x;//detFloat2(s1, s2);// s1^ s2;
+
+        if (!det) 
+            continue;
+
+        float aT, bT, aB, bB;
+        aT = -s2.x / det;  bT =  s1.x / det;
+        aB =  s2.y / det;  bB = -s1.y / det;
+
+        XMFLOAT3 p0 = vert[vi[0]].pos;
+        XMFLOAT3 p1 = vert[vi[1]].pos;
+        XMFLOAT3 p2 = vert[vi[2]].pos;
+       
+        p1.x = p1.x - p0.x;
+        p1.y = p1.y - p0.y;
+
+        p2.x = p2.x - p0.x;
+        p2.y = p2.y - p0.y;
+
         float faceArea = LengthFloat3(CrossFloat3(p1, p2));
 
-        XMFLOAT3 faceTangent = Normalize(AdditionFloat3(MultiplyFloat3Float(p1, aT), MultiplyFloat3Float(p2, bT)));
-        XMFLOAT3 faceBitangent = Normalize(AdditionFloat3(MultiplyFloat3Float(p1, aB), MultiplyFloat3Float(p2, bB))); 
-        //(p1*aB + p2*bB).normalized();
+        XMFLOAT3 tmp1 = MultiplyFloat3Float(p1, aT);
+        XMFLOAT3 tmp2 = MultiplyFloat3Float(p2, bT);
+        XMFLOAT3 tmp3 = AdditionFloat3(tmp1, tmp2);
 
-        for (int z=0; z<3; z++) {
-            XMFLOAT3 e1 = SubtractFloat3(vert[ vi[(z+1)%3] ].pos, vert[ vi[z] ].pos);
-            XMFLOAT3 e2 = SubtractFloat3(vert[ vi[(z+2)%3] ].pos, vert[ vi[z] ].pos);
+        XMFLOAT3 faceTangent = Normalize(tmp3);
+
+        tmp1 = MultiplyFloat3Float(p1, aB);
+        tmp2 = MultiplyFloat3Float(p2, bB);
+        tmp3 = AdditionFloat3(tmp1, tmp2);
+
+        XMFLOAT3 faceBitangent = Normalize(tmp3); 
+
+        for (int z = 0; z < 3; z++) {
+            XMFLOAT3 e1 = SubtractFloat3(vert[vi[(z + 1) % 3]].pos, vert[vi[z]].pos);
+            XMFLOAT3 e2 = SubtractFloat3(vert[vi[(z + 2) % 3]].pos, vert[vi[z]].pos);
           
             float wedgeAngle = Angle(e1, e2) * faceArea;
-            //float wedgeAngle = AngelFloat3(e1, e2) * faceArea;
 
-            vert[ vi[z] ].tang = AdditionFloat3(MultiplyFloat3Float(faceTangent, wedgeAngle), vert[vi[z]].tang);
-            vert[vi[z]].bitang = AdditionFloat3(MultiplyFloat3Float(faceBitangent, wedgeAngle), vert[vi[z]].bitang);
+            XMFLOAT3 tempo = MultiplyFloat3Float(faceTangent, wedgeAngle);
+
+            vert[vi[z]].tang = AdditionFloat3(vert[vi[z]].tang, tempo);
+
+            tempo = MultiplyFloat3Float(faceBitangent, wedgeAngle);
+            vert[vi[z]].bitang = AdditionFloat3(vert[vi[z]].bitang, tempo);
         }
-
     }
 
     // pass 3: for each vertex, make sure tang and bitang are normalized
     //         and orthogonal to normal
-    /*for (unsigned int vi=0; vi<vert.size(); vi++){
-        std::swap(vert[vi].tang,vert[vi].bitang);
-        vert[vi].bitang =    (  vert[vi].norm ^ vert[vi].bitang ^ vert[vi].norm  ) .Normalize();
-        vert[vi].tang   =    (  vert[vi].norm ^ vert[vi].tang   ^ vert[vi].norm  ) .Normalize();
-    }*/
     for (unsigned int vi = 0; vi < vert.size(); vi++) {
         std::swap(vert[vi].tang, vert[vi].bitang);
-        vert[vi].bitang = Normalize(CrossFloat3(CrossFloat3(vert[vi].norm, vert[vi].bitang), vert[vi].norm));
-        vert[vi].tang = Normalize(CrossFloat3(CrossFloat3(vert[vi].norm, vert[vi].tang), vert[vi].norm));
-        /*vert[vi].bitang = Normalize(CrossFloat3(vert[vi].norm, CrossFloat3(vert[vi].bitang, vert[vi].norm)));
-        vert[vi].tang = Normalize(CrossFloat3(vert[vi].norm, CrossFloat3(vert[vi].tang, vert[vi].norm)));*/
+
+        XMFLOAT3 tmp1 = CrossFloat3(vert[vi].norm, vert[vi].bitang);
+        XMFLOAT3 tmp2 = CrossFloat3(tmp1, vert[vi].norm);
+        vert[vi].bitang = Normalize(tmp2);
+
+        tmp1 = CrossFloat3(vert[vi].norm, vert[vi].tang);
+        tmp2 = CrossFloat3(tmp1, vert[vi].norm);
+        vert[vi].tang = Normalize(tmp2);
     }
 }
 
@@ -584,7 +613,7 @@ void Mesh::computeNormals(){
         for (int z=0; z<3; z++) {
             XMFLOAT3 e1 = SubtractFloat3(vert[ vi[(z+1)%3] ].pos, vert[ vi[z] ].pos);
             XMFLOAT3 e2 = SubtractFloat3(vert[ vi[(z+2)%3] ].pos, vert[ vi[z] ].pos);
-            float wedgeAngle = AngelFloat3(e1,e2);
+            float wedgeAngle = Angle(e1,e2);
 
             AddToFloat3(p2n[vi[z]], MultiplyFloat3Float(faceNorm, wedgeAngle));
         }

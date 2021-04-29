@@ -109,6 +109,7 @@ VS_OUTPUT VSmain(VS_INPUT input, uint id : SV_InstanceID)
     );
 
 	output.lightDir = normalize(output.lightDir);
+	//output.lightDir = input.isTextureFlipped;
 	
 	
 	

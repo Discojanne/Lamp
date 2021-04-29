@@ -5,6 +5,31 @@
 
 using namespace DirectX;
 
+struct Vector3
+{
+	Vector3(float _x, float _y, float _z) { x = _x; y = _y; z = _z; }
+	~Vector3() {}
+	float x;
+	float y;
+	float z;
+
+	void operator+=(const Vector3& v) {
+		x = x + v.x;
+		y = y + v.y;
+		z = z + v.z;
+	}
+
+	//void operator=(const Vector3& v) {
+	//	x = v.x;
+	//	y = v.y;
+	//	z = v.z;
+	//	//return Vector3(x,y,z);
+	//}
+
+};
+
+XMFLOAT4 MulVec4Matrix4x4(XMFLOAT4 f, XMMATRIX m);
+
 // a - b
 XMFLOAT3 SubtractFloat3(XMFLOAT3 a, XMFLOAT3 b);
 

@@ -367,13 +367,11 @@ void Mesh::computeDeformFactors(){
         pi[1] = face[ff].index[1];
         pi[2] = face[ff].index[2];
         
-        //  XMFLOAT3X3  ???
-        //Mat3 m;
+        
         XMMATRIX m;
-        //XMFLOAT3 e0 = vert[pi[1]].pos - vert[pi[0]].pos;
         XMFLOAT3 e0 = SubtractFloat3(vert[pi[1]].pos, vert[pi[0]].pos);
-        //XMFLOAT3 e1 = vert[pi[2]].pos - vert[pi[0]].pos;
         XMFLOAT3 e1 = SubtractFloat3(vert[pi[2]].pos, vert[pi[0]].pos);
+
         //XMFLOAT3 n = e1^e0; // cross
         XMFLOAT3 n = CrossFloat3(e1,e0);
 
@@ -530,8 +528,9 @@ void Mesh::computeTangentDirs(){
         for (int z=0; z<3; z++) {
             XMFLOAT3 e1 = SubtractFloat3(vert[ vi[(z+1)%3] ].pos, vert[ vi[z] ].pos);
             XMFLOAT3 e2 = SubtractFloat3(vert[ vi[(z+2)%3] ].pos, vert[ vi[z] ].pos);
-            //float wedgeAngle = angle(e1,e2) * faceArea;
-            float wedgeAngle = AngelFloat3(e1, e2) * faceArea;
+          
+            float wedgeAngle = Angle(e1, e2) * faceArea;
+            //float wedgeAngle = AngelFloat3(e1, e2) * faceArea;
 
             vert[ vi[z] ].tang = AdditionFloat3(MultiplyFloat3Float(faceTangent, wedgeAngle), vert[vi[z]].tang);
             vert[vi[z]].bitang = AdditionFloat3(MultiplyFloat3Float(faceBitangent, wedgeAngle), vert[vi[z]].bitang);
@@ -550,6 +549,8 @@ void Mesh::computeTangentDirs(){
         std::swap(vert[vi].tang, vert[vi].bitang);
         vert[vi].bitang = Normalize(CrossFloat3(CrossFloat3(vert[vi].norm, vert[vi].bitang), vert[vi].norm));
         vert[vi].tang = Normalize(CrossFloat3(CrossFloat3(vert[vi].norm, vert[vi].tang), vert[vi].norm));
+        /*vert[vi].bitang = Normalize(CrossFloat3(vert[vi].norm, CrossFloat3(vert[vi].bitang, vert[vi].norm)));
+        vert[vi].tang = Normalize(CrossFloat3(vert[vi].norm, CrossFloat3(vert[vi].tang, vert[vi].norm)));*/
     }
 }
 

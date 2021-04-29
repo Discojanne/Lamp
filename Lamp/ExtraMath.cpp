@@ -114,6 +114,21 @@ float AngelFloat3(XMFLOAT3 a, XMFLOAT3 b)
         XMFLOAT3(b.x / lb, b.y / lb, b.z / lb)));
 }
 
+float Angle(XMFLOAT3 a, XMFLOAT3 b)
+{
+    float w = LengthFloat3(a) * LengthFloat3(b);
+
+    if (w == 0)
+        return -1;
+
+    float t = (DotFloat3(a,b))/w;
+
+    if (t > 1) t = 1;
+    else if (t < -1) t = -1;
+
+    return float(acos(t));
+}
+
 XMFLOAT3 MultiplyFloat3Float(XMFLOAT3 v, float f)
 {
     return XMFLOAT3(v.x * f, v.y * f, v.z * f);

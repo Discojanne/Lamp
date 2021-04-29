@@ -32,6 +32,8 @@ XMMATRIX inverseOfIsometry(XMMATRIX m);
 
 float AngelFloat3(XMFLOAT3 a, XMFLOAT3 b);
 
+float Angle(XMFLOAT3 a, XMFLOAT3 b);
+
 XMFLOAT3 MultiplyFloat3Float(XMFLOAT3 v, float f);
 
 XMFLOAT4 MultiplyFloat4Float(XMFLOAT4 v, float f);

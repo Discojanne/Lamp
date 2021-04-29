@@ -3,7 +3,7 @@
                   SRV(t1), \
                   SRV(t2), \
                   SRV(t3), \
-                  DescriptorTable(SRV(t4)), \
+                  DescriptorTable(SRV(t4), visibility = SHADER_VISIBILITY_PIXEL), \
                   StaticSampler(s0, \
                     addressU = TEXTURE_ADDRESS_WRAP, \
                     addressv = TEXTURE_ADDRESS_WRAP, \
@@ -35,7 +35,7 @@ float4 PSmain(VS_OUTPUT input) : SV_TARGET
 	float3 specCol = float3(0.1f, 0.1f, 0.1f);
 
    /* uncomment to remove normalmap and spec map */
-   //bump = vec3(0,0,1);
+	//input.lightDir = float3(0, 0, 1);
    //specCol = vec3(0.2);
 
 	float diffuse = dot(input.lightDir, normalMap);
@@ -43,7 +43,7 @@ float4 PSmain(VS_OUTPUT input) : SV_TARGET
 
 	color.rgb = baseCol * (0.25f + 0.75f * diffuse) + specCol * pow(diffuse, 24.0f);
 	
-	
+	//return float4(input.lightDir, 1.0f);
 	return color;
 
 }

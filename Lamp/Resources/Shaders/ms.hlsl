@@ -4,7 +4,7 @@
                   SRV(t1), \
                   SRV(t2), \
                   SRV(t3), \
-                  DescriptorTable(SRV(t4)), \
+                  DescriptorTable(SRV(t4), visibility = SHADER_VISIBILITY_PIXEL), \
                   StaticSampler(s0, \
                     addressU = TEXTURE_ADDRESS_WRAP, \
                     addressv = TEXTURE_ADDRESS_WRAP, \
@@ -133,6 +133,7 @@ void MSmain(in uint threadID : SV_GroupThreadID, in uint groupID : SV_GroupID,
 			+ q2 * Vertices[vertexIndex].boneWeight[2]
 			+ q3 * Vertices[vertexIndex].boneWeight[3];
 	
+		// move it from the vs one
 		_pos.x += 10.0f;
 		outVerts[threadID].pos = mul(float4(_pos.xyz, 1.0f), wvpMat);
 	

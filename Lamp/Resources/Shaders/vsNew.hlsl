@@ -1,6 +1,6 @@
-#define ROOT_SIG2 "CBV(b0), \
-                  SRV(t0), \
-                  StaticSampler(s0)"
+//#define ROOT_SIG2 "CBV(b0), \
+//                  SRV(t0), \
+//                  StaticSampler(s0)"
 
 
 struct VS_INPUT
@@ -43,7 +43,7 @@ float3 capped(float3 p)
 	return p * min(1.0f, div * 0.9f);
 }
 
-[RootSignature(ROOT_SIG2)]
+//[RootSignature(ROOT_SIG2)]
 VS_OUTPUT VSmain(VS_INPUT input, uint id : SV_InstanceID)
 {
 	VS_OUTPUT output;
@@ -71,8 +71,8 @@ VS_OUTPUT VSmain(VS_INPUT input, uint id : SV_InstanceID)
 	//float3 tmpPos = mul(float4(input.pos, 1.0f), (float4x3) T);
 	//float3 tmpPos = float4(input.pos, 1.0f);
 	
-	float3 _tang = mul((float3x3) T, input.tang);
-	float3 _bitang = mul((float3x3) T, input.bitang);
+	float3 _tang = mul(T, float4(input.tang, 0.0f)).xyz;
+	float3 _bitang = mul(T, float4(input.bitang, 0.0f)).xyz;
 	//float3 _norm = mul((float3x3) T, input.norm);
 	//float3 _tang = input.tang;
 	//float3 _bitang = input.bitang;

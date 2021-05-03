@@ -27,9 +27,9 @@ struct VertexOut
 	float4 pos : SV_POSITION;
 	float2 uv : TEXCOORD0;
 	float3 norm : NORMAL0;
-	//float3 tang : TANGENT0;
-	//float3 bitang : BITANGENT0;
-	float3 lightDir : LIGHTDIR;
+	float3 tang : TANGENT0;
+	float3 bitang : BITANGENT0;
+	//float3 lightDir : LIGHTDIR;
 	float3 v_norm_orig : ORIG;
 };
 
@@ -113,7 +113,7 @@ void MSmain(in uint threadID : SV_GroupThreadID, in uint groupID : SV_GroupID,
 		////pos = float4(Vertices[vertexIndex].pos,1.0f);
 		
 		//pos.x += 10.0f; //bridovivel
-  //      //pos.x += 3.0f;
+		//      //pos.x += 3.0f;
 		
 		//outVerts[threadID].pos = TransformPos(pos);
 		//outVerts[threadID].uv = Vertices[vertexIndex].uv;
@@ -122,13 +122,12 @@ void MSmain(in uint threadID : SV_GroupThreadID, in uint groupID : SV_GroupID,
 		
 		float4 pos4 = float4(Vertices[vertexIndex].pos, 1.0f);
 		
-		
 		float3 q0 = mul(boneMatrix[Vertices[vertexIndex].boneIndex[0]], pos4).xyz;
 		float3 q1 = mul(boneMatrix[Vertices[vertexIndex].boneIndex[1]], pos4).xyz - q0;
 		float3 q2 = mul(boneMatrix[Vertices[vertexIndex].boneIndex[2]], pos4).xyz - q0;
 		float3 q3 = mul(boneMatrix[Vertices[vertexIndex].boneIndex[3]], pos4).xyz - q0;
 	
-	// eq 14
+		// eq 14
 		float3 _pos = q0
 			+ q1 * Vertices[vertexIndex].boneWeight[1]
 			+ q2 * Vertices[vertexIndex].boneWeight[2]
@@ -138,18 +137,14 @@ void MSmain(in uint threadID : SV_GroupThreadID, in uint groupID : SV_GroupID,
 		_pos.x += 10.0f;
 		outVerts[threadID].pos = mul(float4(_pos.xyz, 1.0f), wvpMat);
 	
-	// Vertex Skinning
 		float4x4 T = 0;
 		for (int i = 0; i < 4; i++)
 			T += boneMatrix[Vertices[vertexIndex].boneIndex[i]] * Vertices[vertexIndex].boneWeight[i];
 	
-	//float3 tmpPos = mul(float4(input.pos, 1.0f), (float4x3) T);
-	//float3 tmpPos = float4(input.pos, 1.0f);
-	
 		float3 _tang = mul((float3x3) T, Vertices[vertexIndex].tang);
 		float3 _bitang = mul((float3x3) T, Vertices[vertexIndex].bitang);
 	
-		 // only for illustration purposes:
+		// only for illustration purposes:
 		outVerts[threadID].v_norm_orig = normalize(cross(_tang, _bitang)) * Vertices[vertexIndex].isTextureFlipped;
 		
 	
@@ -157,33 +152,22 @@ void MSmain(in uint threadID : SV_GroupThreadID, in uint groupID : SV_GroupID,
           Vertices[vertexIndex].deformFactorsTang.x * q1 +
           Vertices[vertexIndex].deformFactorsTang.y * q2 +
           Vertices[vertexIndex].deformFactorsTang.z * q3
-    );
+		);
 
 		_bitang += capped(
           Vertices[vertexIndex].deformFactorsBitang.x * q1 +
           Vertices[vertexIndex].deformFactorsBitang.y * q2 +
           Vertices[vertexIndex].deformFactorsBitang.z * q3
-    );
+		);
 	
-	// vectors are "capped" is because of Sec 4.5
+		// vectors are "capped" is because of Sec 4.5
 
 		_tang = normalize(_tang);
 		_bitang = normalize(_bitang);
 		float3 _norm = normalize(cross(_tang, _bitang)) * Vertices[vertexIndex].isTextureFlipped;
 	
-		float3 lightDir = float3(0.0f, 0.0f, -1.0f);
-	
-	// take lightDir to OBJECT space
-		lightDir = mul(lightDir, (float3x3) normalMatrix);
-
-    // take lightDir to TANGENT space
-		lightDir = float3(
-			dot(lightDir, _tang),
-			dot(lightDir, _bitang),
-			dot(lightDir, _norm)
-		);
-
-		outVerts[threadID].lightDir = normalize(lightDir);
+		outVerts[threadID].tang = _tang;
+		outVerts[threadID].bitang = _bitang;
 		outVerts[threadID].uv = Vertices[vertexIndex].uv;
 		
 		// only for illustration purposes:

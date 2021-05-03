@@ -462,6 +462,12 @@ void Mesh::computeDeformFactors(){
         for (unsigned int k=0; k<3; k++) {
            vert[vi].deformFactorsTang[k] = vert[vi].deformFactorsTang[k+1];
            vert[vi].deformFactorsBtan[k] = vert[vi].deformFactorsBtan[k+1];
+
+           /*if (isnan(vert[vi].deformFactorsBtan[k]))
+           {
+               vert[vi].pos.x += 0.000001;
+               int a = 13;
+           }*/
         }
     }
 

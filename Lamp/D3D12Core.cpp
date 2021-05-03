@@ -135,12 +135,7 @@ void Direct3D12::Update(double dt)
     // CPU Skinning - only do output.pos = mul(float4(input.pos, 1.0f), wvpMat); in shader
     //m_scene->testAnimationFunc(m_anitmaionframe);
 
-    // x D
-   /* for (size_t i = 0; i < m_scene->currentMesh.vertLiteVector.size(); i++)
-    {
-        m_scene->currentMesh.vertLiteVector[i].boneIndex[3] = animFlag;
-    }
-
+    /*
     CD3DX12_RANGE readRange(0, 0);
     void* data = nullptr;
     m_scene->currentMesh.vBufferUploadHeap->Map(0, &readRange, &data);
@@ -841,7 +836,7 @@ bool Direct3D12::InitShaderLayoutGPS()
 
     desc.source = nullptr;
     desc.sourceSize = 0;
-    desc.filePath = L"Resources/Shaders/psMesh.hlsl";
+    desc.filePath = L"Resources/Shaders/psDiff.hlsl";
     desc.entryPoint = L"PSmain";
     desc.targetProfile = L"ps_6_5";
 

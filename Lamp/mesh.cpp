@@ -728,7 +728,8 @@ void Mesh::computeIsTextureFlipped(){
 
         float flipped = sign(detFloat2(e0, e1));
 
-        for (int w=0; w<3; w++) vert[ face[i].index[w] ].isTextureFlipped = flipped;
+        for (int w = 0; w < 3; w++)
+            vert[face[i].index[w]].isTextureFlipped = flipped;
     }
 }
 

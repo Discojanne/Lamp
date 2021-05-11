@@ -74,12 +74,12 @@ bool ioSMD::importTriangles(FILE*f, Mesh &m ){
         fscanln(f, matName); //
         if (strcmp(matName,"end")==0) break;
         if (strcmp(matName,"end\10")==0) break;
-        for (int w=0; w<3; w++) {
+        for (int w = 0; w < 3; w++) {
             int bi;
             Vert v;
             char line[4096];
 
-            int nr=0;
+            int nr = 0;
             fscanln(f, line);
             int tmp[4];
             int nread =
@@ -94,21 +94,23 @@ bool ioSMD::importTriangles(FILE*f, Mesh &m ){
                     tmp+2, &(v.boneWeight[2]),
                     tmp+3, &(v.boneWeight[3])
             );
-            if (nr>4) { nr=4;}
+            if (nr > 4)
+                nr = 4;
+            
             //if  (!( nread==9 || nread == 9+1+nr*2)) qDebug("[%s] (w:%d f:%d),",line,w,m.face.size());
             assert(nread == 9 || nread == 9 + 1 + nr * 2);
             for (int k = 0; k < nr; k++) {
-                v.boneIndex[k]=tmp[k];
+                v.boneIndex[k] = tmp[k];
             }
             for (int k = nr; k < 4; k++) {
-                v.boneIndex[k]=-1; 
-                v.boneWeight[k]=0;
+                v.boneIndex[k] = -1;
+                v.boneWeight[k] = 0;
             }
             float sumW = 0;
             for (int k = 0; k < 4; k++) 
                 sumW += v.boneWeight[k];
 
-            if (sumW < 0.999999) {
+            if (sumW < 0.999999f) {
                 if (nr < 4) {
                     v.boneIndex[nr] = bi;
                     v.boneWeight[nr] = 1 - sumW;
@@ -240,16 +242,6 @@ bool ioSMD::import(FILE* f, Mesh &m , Animation &a ){
 
         a.pose.push_back( p );
     }
-
-
-
-
-
-
-
-
-
-
 
     expectedErr="end";
     if (strcmp(foundErr,expectedErr)!=0) {

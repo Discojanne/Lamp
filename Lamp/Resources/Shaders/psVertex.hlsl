@@ -21,7 +21,6 @@ float4 PSmain(VS_OUTPUT input) : SV_TARGET
 	
 	float4 color;
 	color.a = 1.0f;
-
 	float3 normalMap = t1.Sample(s1, input.uv).rgb * 2.0f - 1.0f;
 	float3 specCol = float3(0.1f, 0.1f, 0.1f);
 

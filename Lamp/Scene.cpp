@@ -28,10 +28,10 @@ bool Scene::LoadMesh(std::string filename)
     {
         printf("The file 'crt_fopen_s.c' was opened\n");
     }
-   else
-   {
-   printf("The file 'crt_fopen_s.c' was not opened\n");
-   }
+    else
+    {
+        printf("The file 'crt_fopen_s.c' was not opened\n");
+    }
 
 
     Animation tmpAni;

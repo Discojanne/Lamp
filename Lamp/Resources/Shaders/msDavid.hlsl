@@ -135,7 +135,7 @@ void MSmain(in uint threadID : SV_GroupThreadID, in uint groupID : SV_GroupID,
 	
 		// move it from the vs one
 		_pos.x += 10.0f;
-		outVerts[threadID].pos = mul(float4(_pos.xyz, 1.0f), wvpMat);
+		outVerts[threadID].pos = mul(wvpMat, float4(_pos.xyz, 1.0f));
 	
 		float4x4 T = 0;
 		for (int i = 0; i < 4; i++)

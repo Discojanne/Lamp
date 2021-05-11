@@ -115,7 +115,7 @@ void Direct3D12::Update(double dt)
 {
     m_scene->Update(dt);
 
-    m_cbPerObject.wvpMat = DirectX::XMMatrixTranspose(m_scene->cam.GenerateWVP());
+    m_cbPerObject.wvpMat = (m_scene->cam.GenerateWVP());
     m_cbPerObject.normalMatrix = DirectX::XMMatrixTranspose(m_scene->cam.GenerateNormalMatrix());
 
     static float time = 0.0f;
@@ -810,12 +810,12 @@ bool Direct3D12::InitShaderLayoutGPS()
     pixelShaderVertexBytecode.BytecodeLength = pixelShaderVertex->GetBufferSize();
     pixelShaderVertexBytecode.pShaderBytecode = pixelShaderVertex->GetBufferPointer();
 
-    /// compile mesh shader
+    /// compile mesh shader 
     IDxcBlob* meshShader;
 
     desc.source = nullptr;
     desc.sourceSize = 0;
-    desc.filePath = L"Resources/Shaders/ms.hlsl";
+    desc.filePath = L"Resources/Shaders/msDavid.hlsl";
     desc.entryPoint = L"MSmain";
     desc.targetProfile = L"ms_6_5";
 
@@ -831,12 +831,12 @@ bool Direct3D12::InitShaderLayoutGPS()
     meshShaderBytecode.BytecodeLength = meshShader->GetBufferSize();
     meshShaderBytecode.pShaderBytecode = meshShader->GetBufferPointer();
 
-    /// compile pixel shader
+    /// compile pixel shader for ms 
     IDxcBlob* pixelShader;
 
     desc.source = nullptr;
     desc.sourceSize = 0;
-    desc.filePath = L"Resources/Shaders/psDiff.hlsl";
+    desc.filePath = L"Resources/Shaders/psMsDavid.hlsl";
     desc.entryPoint = L"PSmain";
     desc.targetProfile = L"ps_6_5";
 

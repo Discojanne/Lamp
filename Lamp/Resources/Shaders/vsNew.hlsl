@@ -61,7 +61,7 @@ VS_OUTPUT VSmain(VS_INPUT input, uint id : SV_InstanceID)
 	+ q2 * input.boneWeight[2] 
 	+ q3 * input.boneWeight[3];
 	
-	output.pos = mul(float4(_pos.xyz, 1.0f), wvpMat);
+	output.pos = mul(wvpMat, float4(_pos.xyz, 1.0f));
 	
 	// Vertex Skinning
 	float4x4 T = 0;

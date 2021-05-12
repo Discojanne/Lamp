@@ -773,7 +773,7 @@ bool Direct3D12::InitShaderLayoutGPS()
     DXILShaderCompiler::Desc desc;
     desc.source = nullptr;
     desc.sourceSize = 0;
-    desc.filePath = L"Resources/Shaders/vsNew.hlsl";
+    desc.filePath = L"Resources/Shaders/vsDeform.hlsl";
     desc.entryPoint = L"VSmain";
     desc.targetProfile = L"vs_6_5";
 
@@ -794,7 +794,7 @@ bool Direct3D12::InitShaderLayoutGPS()
 
     desc.source = nullptr;
     desc.sourceSize = 0;
-    desc.filePath = L"Resources/Shaders/psVertex.hlsl";
+    desc.filePath = L"Resources/Shaders/psVsDeform.hlsl";
     desc.entryPoint = L"PSmain";
     desc.targetProfile = L"ps_6_5";
 
@@ -815,7 +815,7 @@ bool Direct3D12::InitShaderLayoutGPS()
 
     desc.source = nullptr;
     desc.sourceSize = 0;
-    desc.filePath = L"Resources/Shaders/ms.hlsl";
+    desc.filePath = L"Resources/Shaders/msDavid.hlsl";
     desc.entryPoint = L"MSmain";
     desc.targetProfile = L"ms_6_5";
 
@@ -836,7 +836,7 @@ bool Direct3D12::InitShaderLayoutGPS()
 
     desc.source = nullptr;
     desc.sourceSize = 0;
-    desc.filePath = L"Resources/Shaders/psDiff.hlsl";
+    desc.filePath = L"Resources/Shaders/psMsDavid.hlsl";
     desc.entryPoint = L"PSmain";
     desc.targetProfile = L"ps_6_5";
 

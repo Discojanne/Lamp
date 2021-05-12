@@ -1,18 +1,18 @@
-#define ROOT_SIG2 "CBV(b0), \
-                  SRV(t0), \
-                  StaticSampler(s0)"
-
 
 struct VS_INPUT
 {
 	float3 pos : POSITION;
 	float2 uv : TEXCOORD0;
-	float3 norm : NORMAL0;
+	float3 norm : NORMAL0; // not used
 	float3 tang : TANGENT0;
 	float3 bitang : BITANGENT0;
 	
 	int4 boneIndex : BONEINDEX;
 	float4 boneWeight : BONEWEIGHT;
+	
+	float3 deformFactorsTang : DEFORMTANG;
+	float3 deformFactorsBitang : DEFORMTBTAN;
+	float isTextureFlipped : FLIPPED;
 };
 
 cbuffer ConstantBufferTest : register(b0)
@@ -31,7 +31,6 @@ struct VS_OUTPUT
 	float3 bitang : BITANGENT0;
 };
 
-[RootSignature(ROOT_SIG2)]
 VS_OUTPUT VSmain(VS_INPUT input, uint id : SV_InstanceID)
 {
 	VS_OUTPUT output;
@@ -41,20 +40,17 @@ VS_OUTPUT VSmain(VS_INPUT input, uint id : SV_InstanceID)
 	for (int i = 0; i < 4; i++)
 		T += boneMatrix[input.boneIndex[i]] * input.boneWeight[i];
 	
-	float3 tmpPos = mul(float4(input.pos, 1.0f), (float4x3) T);
+	float3 tmpPos = mul(T, float4(input.pos, 1.0f));
 	
 	float3 _tang = mul((float3x3) T, input.tang);
 	float3 _bitang = mul((float3x3) T, input.bitang);
 	float3 _norm = mul((float3x3) T, input.norm);
 	
-	output.pos = mul(float4(tmpPos.xyz, 1.0f), wvpMat);
+	output.pos = mul(wvpMat, float4(tmpPos.xyz, 1.0f));
 	output.uv = input.uv;
 	output.norm		= _norm;
 	output.tang		= _tang;
 	output.bitang	= _bitang;
-	
-	//output.color = float4(1.0f, 1.0f, 1.0f, 1.0f);
-	//output.pos = mul(float4(input.pos, 1.0f), wvpMat);
 	
 	return output;
 }

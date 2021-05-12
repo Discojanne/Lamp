@@ -1,7 +1,3 @@
-//#define ROOT_SIG2 "CBV(b0), \
-//                  SRV(t0), \
-//                  StaticSampler(s0)"
-
 
 struct VS_INPUT
 {
@@ -43,7 +39,6 @@ float3 capped(float3 p)
 	return p * min(1.0f, div * 0.9f);
 }
 
-//[RootSignature(ROOT_SIG2)]
 VS_OUTPUT VSmain(VS_INPUT input, uint id : SV_InstanceID)
 {
 	VS_OUTPUT output;

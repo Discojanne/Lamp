@@ -1,16 +1,6 @@
-#define ROOT_SIG "CBV(b0), \
-                  SRV(t0), \
-                  SRV(t1), \
-                  SRV(t2), \
-                  SRV(t3), \
-                  DescriptorTable(SRV(t4), visibility = SHADER_VISIBILITY_PIXEL), \
-                  StaticSampler(s0, \
-                    addressU = TEXTURE_ADDRESS_WRAP, \
-                    addressv = TEXTURE_ADDRESS_WRAP, \
-                    addressw = TEXTURE_ADDRESS_WRAP, \
-                    filter = FILTER_MIN_MAG_MIP_LINEAR)"
 
-Texture2D t1 : register(t4); // normal
+
+Texture2D t1 : register(t0); // normal
 //Texture2D t2 : register(t0);
 SamplerState s1 : register(s0);
 
@@ -24,7 +14,7 @@ struct VS_OUTPUT
 	float3 bitang : BITANGENT0;
 };
 
-[RootSignature(ROOT_SIG)]
+
 float4 PSmain(VS_OUTPUT input) : SV_TARGET
 {
 	float4 color;
@@ -44,5 +34,4 @@ float4 PSmain(VS_OUTPUT input) : SV_TARGET
 	color.rgb = baseCol * (0.25f + 0.75f * diffuse) + specCol * pow(diffuse, 24.0f);
 	
 	return color;
-
 }

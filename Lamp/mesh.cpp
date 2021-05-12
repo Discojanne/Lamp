@@ -45,7 +45,6 @@ Mesh::~Mesh()
     Cleanup();
 }
 
-
 void Mesh::ReleaseUploadHeaps()
 {
     //currentMesh.vBufferUploadHeap->Release();
@@ -362,13 +361,13 @@ void Mesh::computeDeformFactors(){
     int overflowCoun = 0;
 
     for (unsigned int ff=0; ff<face.size(); ff++){
-        int pi[3];
+        int pi[3] = {};
         pi[0] = face[ff].index[0];
         pi[1] = face[ff].index[1];
         pi[2] = face[ff].index[2];
         
         
-        XMMATRIX m;
+        XMMATRIX m = XMMatrixIdentity();
         XMFLOAT3 e0 = SubtractFloat3(vert[pi[1]].pos, vert[pi[0]].pos);
         XMFLOAT3 e1 = SubtractFloat3(vert[pi[2]].pos, vert[pi[0]].pos);
 
@@ -500,24 +499,24 @@ float Vert::weightOfBone(int i) const{
 void Mesh::computeTangentDirs(){
 
     // pass 1: reset tang and bitang
-    for (unsigned int vi=0; vi<vert.size(); vi++){
-        vert[vi].tang = XMFLOAT3(0,0,0);
-        vert[vi].bitang = XMFLOAT3(0,0,0);
+    for (unsigned int vi = 0; vi < vert.size(); vi++) {
+        vert[vi].tang = XMFLOAT3(0, 0, 0);
+        vert[vi].bitang = XMFLOAT3(0, 0, 0);
     }
 
     // pass 2: cycle over faces, cumulate tang and bitang
     /* note: we rely on vertex seams, that is, existing vertex duplications
      * in order to store discontinuities of tangent directions.
      */
-    for (unsigned int ff=0; ff<face.size(); ff++){
+    for (unsigned int ff = 0; ff < face.size(); ff++) {
         int vi[3];
         vi[0] = face[ff].index[0];
         vi[1] = face[ff].index[1];
         vi[2] = face[ff].index[2];
 
-        XMFLOAT2 s0=vert[ vi[0] ].uv;
-        XMFLOAT2 s1=vert[ vi[1] ].uv;
-        XMFLOAT2 s2=vert[ vi[2] ].uv;
+        XMFLOAT2 s0 = vert[vi[0]].uv;
+        XMFLOAT2 s1 = vert[vi[1]].uv;
+        XMFLOAT2 s2 = vert[vi[2]].uv;
         s1 = SubtractFloat2(s1,s0);
         s2 = SubtractFloat2(s2, s0);
         float det = detFloat2(s1, s2);// s1^ s2;
@@ -554,17 +553,10 @@ void Mesh::computeTangentDirs(){
 
     // pass 3: for each vertex, make sure tang and bitang are normalized
     //         and orthogonal to normal
-    /*for (unsigned int vi=0; vi<vert.size(); vi++){
-        std::swap(vert[vi].tang,vert[vi].bitang);
-        vert[vi].bitang =    (  vert[vi].norm ^ vert[vi].bitang ^ vert[vi].norm  ) .Normalize();
-        vert[vi].tang   =    (  vert[vi].norm ^ vert[vi].tang   ^ vert[vi].norm  ) .Normalize();
-    }*/
     for (unsigned int vi = 0; vi < vert.size(); vi++) {
         std::swap(vert[vi].tang, vert[vi].bitang);
         vert[vi].bitang = Normalize(CrossFloat3(CrossFloat3(vert[vi].norm, vert[vi].bitang), vert[vi].norm));
         vert[vi].tang = Normalize(CrossFloat3(CrossFloat3(vert[vi].norm, vert[vi].tang), vert[vi].norm));
-        /*vert[vi].bitang = Normalize(CrossFloat3(vert[vi].norm, CrossFloat3(vert[vi].bitang, vert[vi].norm)));
-        vert[vi].tang = Normalize(CrossFloat3(vert[vi].norm, CrossFloat3(vert[vi].tang, vert[vi].norm)));*/
     }
 }
 
@@ -577,7 +569,7 @@ void Mesh::computeNormals(){
 
     // pass 1: reset tang and bitang
     for (unsigned int vi=0; vi<vert.size(); vi++){
-        p2n[ vi ] = XMFLOAT3(0,0,0);
+        p2n[vi] = XMFLOAT3(0, 0, 0);
     }
 
     // pass 2: cycle over faces, cumulate norms

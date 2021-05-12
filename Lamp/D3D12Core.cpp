@@ -815,7 +815,7 @@ bool Direct3D12::InitShaderLayoutGPS()
 
     desc.source = nullptr;
     desc.sourceSize = 0;
-    desc.filePath = L"Resources/Shaders/msDavid.hlsl";
+    desc.filePath = L"Resources/Shaders/ms.hlsl";
     desc.entryPoint = L"MSmain";
     desc.targetProfile = L"ms_6_5";
 
@@ -836,7 +836,7 @@ bool Direct3D12::InitShaderLayoutGPS()
 
     desc.source = nullptr;
     desc.sourceSize = 0;
-    desc.filePath = L"Resources/Shaders/psMsDavid.hlsl";
+    desc.filePath = L"Resources/Shaders/psDiff.hlsl";
     desc.entryPoint = L"PSmain";
     desc.targetProfile = L"ps_6_5";
 
